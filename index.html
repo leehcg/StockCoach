@@ -543,6 +543,10 @@
                 <input type="text" class="form-input" id="holdingName" placeholder="如：贵州茅台" />
             </div>
             <div class="form-group">
+                <label class="form-label">股票代码</label>
+                <input type="text" class="form-input" id="holdingCode" placeholder="A股:sh600519/sz000001 美股:usAAPL" />
+            </div>
+            <div class="form-group">
                 <label class="form-label">买入价格</label>
                 <input type="number" class="form-input" id="holdingPrice" placeholder="0.00" step="0.01" />
             </div>
@@ -576,6 +580,10 @@
             <div class="form-group">
                 <label class="form-label">股票名称</label>
                 <input type="text" class="form-input" id="editName" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">股票代码</label>
+                <input type="text" class="form-input" id="editCode" placeholder="A股:sh600519 美股:usAAPL" />
             </div>
             <div class="form-group">
                 <label class="form-label">买入价格</label>
@@ -1292,7 +1300,8 @@ ${reviewsInfo}
         const reminders = getHoldingReminders();
         if (reminders.length > 0) {
             html += `<div class="card" style="background:rgba(255,149,0,0.08);border:1px solid rgba(255,149,0,0.2);margin-bottom:12px;">
-                <div style="font-size:14px;color:var(--text);">⏰ 你有 <strong>${reminders.length}</strong> 只持仓，记得每天回顾买入逻辑是否还成立</div>
+                <div style="font-size:14px;color:var(--text);margin-bottom:8px;">⏰ 你有 <strong>${reminders.length}</strong> 只持仓，记得每天回顾买入逻辑是否还成立</div>
+                <div id="dailySuggestion" style="margin-top:8px;padding:10px;background:var(--bg);border-radius:10px;"></div>
             </div>`;
         }
 
@@ -1302,7 +1311,8 @@ ${reviewsInfo}
                 <div class="holding-item" style="flex-direction:column;align-items:stretch;">
                     <div style="display:flex;justify-content:space-between;align-items:center;">
                         <div>
-                            <div class="holding-name">${escapeHtml(h.name)}</div>
+                            <div class="holding-name">${escapeHtml(h.name)}${h.code ? `<span style="font-size:12px;color:var(--text-secondary);margin-left:6px;font-weight:400;">${h.code}</span>` : ''}</div>
+                            <div id="livePrice_${i}" style="margin:4px 0;">${h.code ? '<span style="font-size:13px;color:var(--text-secondary);">加载中...</span>' : ''}</div>
                             <div class="holding-meta">
                                 ${h.qty}股 × ${h.price}${h.buys && h.buys.length > 1 ? ' (均)' : ''}
                                 <span class="tag tag-stop">止损 ${h.stop}</span>
@@ -1330,6 +1340,8 @@ ${reviewsInfo}
         });
         html += '</div>';
         content.innerHTML = html;
+        updateHoldingPrices();
+        getDailySuggestion();
     }
 
     const holdingAIMsgs = DB.get('holdingAIMsgs', {});
@@ -1423,6 +1435,7 @@ ${reviewsInfo}
 
     document.getElementById('addHoldingSave').addEventListener('click', () => {
         const name = document.getElementById('holdingName').value.trim();
+        const code = document.getElementById('holdingCode').value.trim();
         const price = document.getElementById('holdingPrice').value;
         const qty = document.getElementById('holdingQty').value;
         const stop = document.getElementById('holdingStop').value;
@@ -1435,15 +1448,14 @@ ${reviewsInfo}
         }
 
         holdings.push({
-            name, price: +price, qty: +qty || 0,
+            name, code, price: +price, qty: +qty || 0,
             stop: +stop || 0, target: +target || 0,
             reason: reason || '未填写',
             date: new Date().toISOString().split('T')[0]
         });
         DB.set('holdings', holdings);
 
-        // 清空表单
-        ['holdingName','holdingPrice','holdingQty','holdingStop','holdingTarget','holdingReason'].forEach(id => {
+        ['holdingName','holdingCode','holdingPrice','holdingQty','holdingStop','holdingTarget','holdingReason'].forEach(id => {
             document.getElementById(id).value = '';
         });
 
@@ -1809,6 +1821,7 @@ ${reviewsInfo}
         editingIndex = index;
         const h = holdings[index];
         document.getElementById('editName').value = h.name;
+        document.getElementById('editCode').value = h.code || '';
         document.getElementById('editPrice').value = h.price;
         document.getElementById('editQty').value = h.qty;
         document.getElementById('editStop').value = h.stop;
@@ -1827,6 +1840,7 @@ ${reviewsInfo}
         holdings[editingIndex] = {
             ...holdings[editingIndex],
             name: document.getElementById('editName').value.trim() || holdings[editingIndex].name,
+            code: document.getElementById('editCode').value.trim(),
             price: +document.getElementById('editPrice').value || holdings[editingIndex].price,
             qty: +document.getElementById('editQty').value || holdings[editingIndex].qty,
             stop: +document.getElementById('editStop').value || 0,
@@ -2160,6 +2174,90 @@ ${reviewsInfo}
         const mmdd = dateStr.slice(5);
         const holiday = HOLIDAYS[mmdd];
         return weekday + (holiday ? ' · ' + holiday : '');
+    }
+
+    // ====== 股票实时价格 ======
+    const priceCache = {};
+
+    async function fetchPrice(code) {
+        if (!code) return null;
+        const cached = priceCache[code];
+        if (cached && Date.now() - cached.ts < 60000) return cached.data;
+        try {
+            const resp = await fetch(`https://qt.gtimg.cn/q=${code}`);
+            const buffer = await resp.arrayBuffer();
+            const decoder = new TextDecoder('gbk');
+            const text = decoder.decode(buffer);
+            const match = text.match(/="(.+)"/);
+            if (!match) return null;
+            const parts = match[1].split('~');
+            if (parts.length < 35) return null;
+            const result = { name: parts[1], price: +parts[3], yesterday: +parts[4], open: +parts[5], high: +parts[33], low: +parts[34], change: +parts[31], changePct: +parts[32] };
+            priceCache[code] = { data: result, ts: Date.now() };
+            return result;
+        } catch(e) { return null; }
+    }
+
+    async function updateHoldingPrices() {
+        for (let i = 0; i < holdings.length; i++) {
+            const h = holdings[i];
+            if (!h.code) continue;
+            const el = document.getElementById('livePrice_' + i);
+            if (!el) continue;
+            const data = await fetchPrice(h.code);
+            if (data) {
+                const pnl = (data.price - h.price) * h.qty;
+                const pnlPct = ((data.price - h.price) / h.price * 100).toFixed(2);
+                const color = pnl >= 0 ? 'var(--red)' : 'var(--green)';
+                const arrow = pnl >= 0 ? '↑' : '↓';
+                el.innerHTML = `<span style="font-weight:700;font-size:15px;">${data.price.toFixed(2)}</span>
+                    <span style="color:${color};font-size:13px;margin-left:4px;">${arrow}${Math.abs(data.changePct).toFixed(2)}%</span>
+                    <span style="color:${color};font-size:13px;margin-left:6px;">盈亏 ${pnl >= 0 ? '+' : ''}${pnl.toFixed(0)} (${pnlPct}%)</span>`;
+            } else {
+                el.innerHTML = '<span style="color:var(--text-secondary);font-size:13px;">价格获取失败</span>';
+            }
+        }
+    }
+
+    // ====== 每日持仓建议 ======
+    async function getDailySuggestion() {
+        const container = document.getElementById('dailySuggestion');
+        if (!container) return;
+        if (holdings.length === 0) { container.style.display = 'none'; return; }
+        if (!apiKey) { container.innerHTML = '<div style="font-size:13px;color:var(--text-secondary);">设置 API Key 后可获取每日建议</div>'; return; }
+
+        const cacheKey = 'dailySuggestion_' + new Date().toISOString().split('T')[0];
+        const cached = DB.get(cacheKey, null);
+        if (cached) {
+            container.style.display = 'block';
+            container.innerHTML = `<div style="font-size:13px;line-height:1.7;color:var(--text);">${renderMarkdown(cached)}</div>`;
+            return;
+        }
+
+        container.style.display = 'block';
+        container.innerHTML = '<div style="font-size:13px;color:var(--text-secondary);">🤖 正在生成今日建议...</div>';
+
+        const holdingsSummary = holdings.map(h => `${h.name}(成本${h.price},${h.qty}股,止损${h.stop},目标${h.target})`).join('；');
+        try {
+            const resp = await fetch('https://api.deepseek.com/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                body: JSON.stringify({
+                    model: 'deepseek-chat',
+                    messages: [
+                        { role: 'system', content: '你是一个股票投资教练。根据用户持仓给出简短的每日操作建议（3-5条要点），包括：是否需要止盈/止损、今日关注点、心态提醒。不超过150字。' },
+                        { role: 'user', content: `今天是${new Date().toLocaleDateString('zh-CN')}，我的持仓：${holdingsSummary}。请给我今日操作建议。` }
+                    ],
+                    temperature: 0.7, max_tokens: 300
+                })
+            });
+            const data = await resp.json();
+            const suggestion = data.choices[0].message.content;
+            DB.set(cacheKey, suggestion);
+            container.innerHTML = `<div style="font-size:13px;line-height:1.7;color:var(--text);">${renderMarkdown(suggestion)}</div>`;
+        } catch(e) {
+            container.innerHTML = '<div style="font-size:13px;color:var(--red);">建议生成失败，请稍后重试</div>';
+        }
     }
 
     function renderMarkdown(text) {
