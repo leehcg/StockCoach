@@ -1,0 +1,1520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>决策陪练</title>
+    <style>
+        :root {
+            --bg: #f5f5f7;
+            --card: rgba(255,255,255,0.72);
+            --card-hover: rgba(255,255,255,0.9);
+            --text: #1c1c1e;
+            --text-secondary: #6c6c70;
+            --accent: #007aff;
+            --green: #34c759;
+            --red: #ff3b30;
+            --orange: #ff9500;
+            --border: rgba(0,0,0,0.06);
+            --radius: 16px;
+            --radius-lg: 20px;
+            --navbar-bg: rgba(255,255,255,0.72);
+            --tabbar-bg: rgba(255,255,255,0.72);
+            --shadow: 0 2px 16px rgba(0,0,0,0.05), 0 1px 4px rgba(0,0,0,0.03);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+            --glass-border: rgba(255,255,255,0.5);
+            --gradient-accent: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #000000;
+                --card: rgba(44,44,46,0.65);
+                --card-hover: rgba(58,58,60,0.8);
+                --text: #f5f5f7;
+                --text-secondary: #98989f;
+                --accent: #0a84ff;
+                --green: #30d158;
+                --red: #ff453a;
+                --orange: #ff9f0a;
+                --border: rgba(255,255,255,0.08);
+                --navbar-bg: rgba(18,18,18,0.78);
+                --tabbar-bg: rgba(18,18,18,0.78);
+                --shadow: 0 2px 16px rgba(0,0,0,0.3), 0 1px 4px rgba(0,0,0,0.2);
+                --shadow-lg: 0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.25);
+                --glass-border: rgba(255,255,255,0.1);
+                --gradient-accent: linear-gradient(135deg, #0a84ff 0%, #5e5ce6 100%);
+            }
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        /* 顶部导航 */
+        .navbar {
+            position: sticky;
+            top: 0;
+            background: var(--navbar-bg);
+            backdrop-filter: blur(24px) saturate(200%);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 20px;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar h1 {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+        .navbar-btn {
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-size: 14px;
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        .navbar-btn:hover { background: rgba(10,132,255,0.1); }
+        .navbar-btn:active { transform: scale(0.96); }
+
+        /* 底部Tab */
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--tabbar-bg);
+            backdrop-filter: blur(24px) saturate(200%);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 12px 20px;
+            z-index: 100;
+        }
+        .tab-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            cursor: pointer;
+            padding: 6px 18px;
+            border-radius: 12px;
+            transition: all 0.25s ease;
+            border: none;
+            background: none;
+            color: var(--text-secondary);
+            font-size: 10px;
+            font-weight: 500;
+        }
+        .tab-item.active {
+            color: var(--accent);
+            background: rgba(10,132,255,0.08);
+        }
+        .tab-item .tab-icon { font-size: 22px; }
+
+        /* 页面容器 */
+        .page { display: none; padding: 20px; }
+        .page.active { display: block; }
+
+        /* 卡片 */
+        .card {
+            background: var(--card);
+            backdrop-filter: blur(20px) saturate(180%);
+            border-radius: var(--radius);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow);
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+        }
+
+        /* 聊天界面 */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            min-height: calc(100vh - 180px);
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 16px;
+        }
+        .message {
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+        .message.ai .bubble {
+            background: var(--card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            align-self: flex-start;
+            border-radius: 6px 20px 20px 20px;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+        }
+        .message.user .bubble {
+            background: var(--gradient-accent);
+            align-self: flex-end;
+            border-radius: 20px 6px 20px 20px;
+            color: #fff;
+            box-shadow: 0 2px 12px rgba(0,122,255,0.25);
+        }
+        .bubble {
+            max-width: 85%;
+            padding: 12px 16px;
+            font-size: 15px;
+            line-height: 1.55;
+            white-space: pre-wrap;
+        }
+        .chat-input-area {
+            display: flex;
+            gap: 8px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+        .chat-input {
+            flex: 1;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 10px 16px;
+            color: var(--text);
+            font-size: 15px;
+            outline: none;
+            resize: none;
+            max-height: 100px;
+        }
+        .chat-input:focus { border-color: var(--accent); }
+        .chat-send {
+            background: var(--gradient-accent);
+            border: none;
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            align-self: flex-end;
+            box-shadow: 0 2px 8px rgba(0,122,255,0.25);
+            transition: all 0.2s ease;
+        }
+        .chat-send:hover { box-shadow: 0 4px 16px rgba(0,122,255,0.35); }
+        .chat-send:active { transform: scale(0.93); }
+        .chat-send:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+
+        /* 持仓列表 */
+        .holding-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 0.5px solid rgba(128,128,128,0.12);
+            transition: all 0.2s ease;
+        }
+        .holding-item:last-child { border-bottom: none; }
+        .holding-name { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; }
+        .holding-meta { font-size: 12px; color: var(--text-secondary); margin-top: 5px; }
+        .holding-right { text-align: right; }
+        .holding-reason {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+            max-width: 220px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .tag {
+            display: inline-block;
+            font-size: 11px;
+            padding: 3px 9px;
+            border-radius: 6px;
+            margin-right: 4px;
+            font-weight: 500;
+        }
+        .tag-stop { background: rgba(255,69,58,0.1); color: var(--red); }
+        .tag-target { background: rgba(48,209,88,0.1); color: var(--green); }
+
+        /* 按钮 */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 13px 22px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+        .btn-primary {
+            background: var(--gradient-accent);
+            color: white;
+            box-shadow: 0 2px 12px rgba(0,122,255,0.2);
+        }
+        .btn-primary:hover {
+            box-shadow: 0 4px 20px rgba(0,122,255,0.35);
+            transform: translateY(-1px);
+        }
+        .btn-primary:active { transform: scale(0.97); box-shadow: none; }
+        .btn-danger { background: rgba(255,69,58,0.12); color: var(--red); }
+        .btn-full { width: 100%; }
+
+        /* 表单 */
+        .form-group { margin-bottom: 16px; }
+        .form-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            display: block;
+            font-weight: 500;
+        }
+        .form-input {
+            width: 100%;
+            background: var(--bg);
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            color: var(--text);
+            font-size: 15px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        .form-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0,122,255,0.12);
+        }
+
+        /* 复盘日志 */
+        .log-item {
+            padding: 14px 0;
+            border-bottom: 0.5px solid rgba(128,128,128,0.12);
+            transition: all 0.2s ease;
+        }
+        .log-item:last-child { border-bottom: none; }
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .log-stock { font-weight: 600; letter-spacing: -0.2px; }
+        .log-result { font-weight: 700; }
+        .log-detail { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+
+        /* 统计 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .stat-item {
+            background: var(--card);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            padding: 16px 12px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+        .stat-value { font-size: 22px; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.5px; }
+        .stat-label { font-size: 11px; color: var(--text-secondary); font-weight: 500; }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+        .empty-icon { font-size: 48px; margin-bottom: 12px; }
+        .empty-text { font-size: 15px; }
+
+        /* 设置弹窗 */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            padding: 20px;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-overlay.show .modal {
+            animation: modalIn 0.3s ease forwards;
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: translateY(16px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .modal {
+            background: var(--card);
+            backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 28px 24px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: var(--shadow-lg);
+        }
+        .modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 18px; letter-spacing: -0.3px; }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 22px;
+        }
+        .modal-actions .btn { flex: 1; }
+        .btn-secondary {
+            background: rgba(128,128,128,0.12);
+            color: var(--text);
+        }
+        .btn-secondary:hover { background: rgba(128,128,128,0.18); }
+
+        /* 加载动画 */
+        .typing-indicator {
+            display: inline-flex;
+            gap: 4px;
+            padding: 8px 14px;
+        }
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            animation: typing 1.2s ease-in-out infinite;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-4px); }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <div class="navbar">
+        <h1 id="pageTitle">决策陪练</h1>
+        <button class="navbar-btn" id="settingsBtn">设置</button>
+    </div>
+
+    <!-- 页面1：聊天 -->
+    <div class="page active" id="pageTrain">
+        <!-- 聊天列表视图 -->
+        <div id="chatListView">
+            <div id="chatHistoryList"></div>
+            <button class="btn btn-primary btn-full" onclick="newChat()" style="margin-top:16px;">+ 新建对话</button>
+        </div>
+        <!-- 对话视图 -->
+        <div id="chatDetailView" style="display:none;">
+            <div style="margin-bottom:12px;">
+                <button class="navbar-btn" onclick="backToChatList()" style="padding:4px 0;">← 返回列表</button>
+            </div>
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages"></div>
+                <div class="chat-input-area">
+                    <textarea class="chat-input" id="chatInput" placeholder="聊聊你的投资想法..." rows="1"></textarea>
+                    <button class="chat-send" id="chatSend">↑</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 页面2：持仓管理 -->
+    <div class="page" id="pageHoldings">
+        <div id="holdingsContent"></div>
+    </div>
+
+    <!-- 页面3：复盘日志 -->
+    <div class="page" id="pageReview">
+        <div id="reviewContent"></div>
+    </div>
+
+    <!-- 页面4：余额 -->
+    <div class="page" id="pageBalance">
+        <div id="balanceContent">
+            <div class="empty-state">
+                <div class="empty-icon">💰</div>
+                <div class="empty-text">正在查询余额...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部Tab -->
+    <div class="tab-bar">
+        <button class="tab-item active" data-page="pageTrain">
+            <span class="tab-icon">💬</span>
+            <span>聊天</span>
+        </button>
+        <button class="tab-item" data-page="pageHoldings">
+            <span class="tab-icon">📊</span>
+            <span>持仓</span>
+        </button>
+        <button class="tab-item" data-page="pageReview">
+            <span class="tab-icon">📝</span>
+            <span>复盘</span>
+        </button>
+        <button class="tab-item" data-page="pageBalance">
+            <span class="tab-icon">💰</span>
+            <span>余额</span>
+        </button>
+    </div>
+
+    <!-- 设置弹窗 -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <h2>设置</h2>
+            <div class="form-group">
+                <label class="form-label">DeepSeek API Key</label>
+                <input type="password" class="form-input" id="settingsApiKey" placeholder="sk-..." />
+            </div>
+            <div class="form-group">
+                <label class="form-label">投资风格（选择或自定义，AI会据此给出建议）</label>
+                <div id="presetStylesContainer" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>
+                <label class="form-label" style="font-size:12px;color:var(--text-secondary);margin-top:4px;">自定义风格（最多3条）</label>
+                <div id="styleTagsContainer" style="display:flex;flex-direction:column;gap:8px;"></div>
+                <button class="btn btn-secondary" id="addStyleTag" style="margin-top:8px;font-size:12px;">+ 添加自定义</button>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="settingsCancel">取消</button>
+                <button class="btn btn-primary" id="settingsSave">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加持仓弹窗 -->
+    <div class="modal-overlay" id="addHoldingModal">
+        <div class="modal">
+            <h2>记录持仓</h2>
+            <div class="form-group">
+                <label class="form-label">股票名称</label>
+                <input type="text" class="form-input" id="holdingName" placeholder="如：贵州茅台" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">买入价格</label>
+                <input type="number" class="form-input" id="holdingPrice" placeholder="0.00" step="0.01" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">持仓数量</label>
+                <input type="number" class="form-input" id="holdingQty" placeholder="0" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">止损价</label>
+                <input type="number" class="form-input" id="holdingStop" placeholder="跌到多少卖" step="0.01" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">目标价</label>
+                <input type="number" class="form-input" id="holdingTarget" placeholder="涨到多少卖" step="0.01" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">买入理由</label>
+                <textarea class="form-input" id="holdingReason" rows="2" placeholder="为什么买？"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="addHoldingCancel">取消</button>
+                <button class="btn btn-primary" id="addHoldingSave">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改持仓弹窗 -->
+    <div class="modal-overlay" id="editHoldingModal">
+        <div class="modal">
+            <h2>修改持仓</h2>
+            <div class="form-group">
+                <label class="form-label">股票名称</label>
+                <input type="text" class="form-input" id="editName" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">买入价格</label>
+                <input type="number" class="form-input" id="editPrice" step="0.01" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">持仓数量</label>
+                <input type="number" class="form-input" id="editQty" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">止损价</label>
+                <input type="number" class="form-input" id="editStop" step="0.01" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">目标价</label>
+                <input type="number" class="form-input" id="editTarget" step="0.01" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">买入理由</label>
+                <textarea class="form-input" id="editReason" rows="2"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">买入日期</label>
+                <input type="date" class="form-input" id="editDate" />
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="editHoldingCancel">取消</button>
+                <button class="btn btn-primary" id="editHoldingSave">保存修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 卖出弹窗 -->
+    <div class="modal-overlay" id="sellHoldingModal">
+        <div class="modal">
+            <h2 id="sellTitle">卖出</h2>
+            <div class="form-group">
+                <label class="form-label">卖出数量</label>
+                <input type="number" class="form-input" id="sellQty" placeholder="0" />
+                <p style="font-size:12px;color:var(--text-secondary);margin-top:4px;" id="sellQtyHint"></p>
+            </div>
+            <div class="form-group">
+                <label class="form-label">卖出价格</label>
+                <input type="number" class="form-input" id="sellPrice" step="0.01" placeholder="0.00" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">卖出日期</label>
+                <input type="date" class="form-input" id="sellDate" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">卖出理由</label>
+                <textarea class="form-input" id="sellReason" rows="2" placeholder="为什么卖？"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="sellHoldingCancel">取消</button>
+                <button class="btn btn-primary" id="sellHoldingSave">确认卖出</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加复盘记录弹窗 -->
+    <div class="modal-overlay" id="addReviewModal">
+        <div class="modal">
+            <h2>添加复盘记录</h2>
+            <div class="form-group">
+                <label class="form-label">股票名称</label>
+                <input type="text" class="form-input" id="reviewName" placeholder="如：贵州茅台" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">买入价格</label>
+                <input type="number" class="form-input" id="reviewBuyPrice" step="0.01" placeholder="0.00" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">卖出价格</label>
+                <input type="number" class="form-input" id="reviewSellPrice" step="0.01" placeholder="0.00" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">数量（股）</label>
+                <input type="number" class="form-input" id="reviewQty" placeholder="0" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">买入理由</label>
+                <textarea class="form-input" id="reviewReason" rows="2" placeholder="为什么买？"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">卖出理由</label>
+                <textarea class="form-input" id="reviewSellReason" rows="2" placeholder="为什么卖？"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">买入日期</label>
+                <input type="date" class="form-input" id="reviewBuyDate" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">卖出日期</label>
+                <input type="date" class="form-input" id="reviewSellDate" />
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="addReviewCancel">取消</button>
+                <button class="btn btn-primary" id="addReviewSave">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ====== 数据存储 ======
+    const DB = {
+        get(key, defaultVal = null) {
+            const v = localStorage.getItem('stockcoach_' + key);
+            return v ? JSON.parse(v) : defaultVal;
+        },
+        set(key, val) {
+            localStorage.setItem('stockcoach_' + key, JSON.stringify(val));
+        }
+    };
+
+    // ====== 状态 ======
+    let holdings = DB.get('holdings', []);
+    let reviews = DB.get('reviews', []);
+    let chatSessions = DB.get('chatSessions', []);  // [{id, title, messages, createdAt}]
+    let currentSessionId = null;
+    let chatHistory = [];
+    let apiKey = DB.get('apiKey', '');
+    const PRESET_STYLES = ['保守型 - 稳健为主，低波动', '均衡型 - 兼顾收益与风险', '进取型 - 追求高收益，能承受波动'];
+    let selectedPresets = DB.get('selectedPresets', [1]); // 默认选中"均衡型"
+    let investStyles = DB.get('investStyles', []);
+
+    // ====== Tab切换 ======
+    const tabs = document.querySelectorAll('.tab-item');
+    const pages = document.querySelectorAll('.page');
+    const pageTitle = document.getElementById('pageTitle');
+    const titles = { pageTrain: '聊天', pageHoldings: '我的持仓', pageReview: '复盘日志', pageBalance: '余额' };
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const target = tab.dataset.page;
+            tabs.forEach(t => t.classList.remove('active'));
+            pages.forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById(target).classList.add('active');
+            pageTitle.textContent = titles[target];
+            if (target === 'pageTrain') { backToChatList(); }
+            if (target === 'pageHoldings') renderHoldings();
+            if (target === 'pageReview') renderReviews();
+            if (target === 'pageBalance') queryBalance();
+        });
+    });
+
+    // ====== 设置 ======
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsModal = document.getElementById('settingsModal');
+    const settingsApiKey = document.getElementById('settingsApiKey');
+
+    function renderPresetStyles() {
+        const container = document.getElementById('presetStylesContainer');
+        container.innerHTML = PRESET_STYLES.map((s, i) => {
+            const active = selectedPresets.includes(i);
+            return `<button type="button" class="navbar-btn" onclick="togglePreset(${i})" style="font-size:12px;padding:6px 12px;border-radius:16px;border:1px solid ${active ? 'var(--accent)' : 'var(--border)'};background:${active ? 'var(--accent)' : 'transparent'};color:${active ? '#fff' : 'var(--text)'};">${s}</button>`;
+        }).join('');
+    }
+
+    function togglePreset(idx) {
+        const pos = selectedPresets.indexOf(idx);
+        if (pos >= 0) selectedPresets.splice(pos, 1);
+        else selectedPresets.push(idx);
+        renderPresetStyles();
+    }
+
+    function renderStyleTags() {
+        const container = document.getElementById('styleTagsContainer');
+        container.innerHTML = investStyles.map((s, i) => `
+            <div style="display:flex;gap:6px;align-items:center;">
+                <input type="text" class="form-input styleTagInput" value="${escapeHtml(s)}" style="flex:1;margin:0;" />
+                <button class="navbar-btn" onclick="removeStyleTag(${i})" style="color:var(--red);font-size:18px;padding:4px 8px;">×</button>
+            </div>
+        `).join('');
+        document.getElementById('addStyleTag').style.display = investStyles.length >= 3 ? 'none' : 'inline-block';
+    }
+
+    document.getElementById('addStyleTag').addEventListener('click', () => {
+        if (investStyles.length >= 3) return;
+        investStyles.push('');
+        renderStyleTags();
+    });
+
+    function removeStyleTag(idx) {
+        investStyles.splice(idx, 1);
+        renderStyleTags();
+    }
+
+    settingsBtn.addEventListener('click', () => {
+        settingsApiKey.value = apiKey;
+        renderPresetStyles();
+        renderStyleTags();
+        settingsModal.classList.add('show');
+    });
+    document.getElementById('settingsCancel').addEventListener('click', () => {
+        settingsModal.classList.remove('show');
+    });
+    document.getElementById('settingsSave').addEventListener('click', () => {
+        apiKey = settingsApiKey.value.trim();
+        const inputs = document.querySelectorAll('.styleTagInput');
+        investStyles = Array.from(inputs).map(el => el.value.trim()).filter(v => v);
+        DB.set('apiKey', apiKey);
+        DB.set('investStyles', investStyles);
+        DB.set('selectedPresets', selectedPresets);
+        settingsModal.classList.remove('show');
+    });
+
+    // ====== 聊天功能 ======
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const chatSend = document.getElementById('chatSend');
+    const chatListView = document.getElementById('chatListView');
+    const chatDetailView = document.getElementById('chatDetailView');
+
+    // 渲染聊天列表
+    function renderChatList() {
+        const list = document.getElementById('chatHistoryList');
+        if (chatSessions.length === 0) {
+            list.innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-text">还没有对话记录</div><p style="color:var(--text-secondary);font-size:13px;margin-top:8px">点击下方按钮开始新对话</p></div>`;
+            return;
+        }
+        list.innerHTML = chatSessions.slice().reverse().map(s => `
+            <div class="card" style="cursor:pointer;margin-bottom:8px;" onclick="openChat('${s.id}')">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="font-size:15px;font-weight:500;">${escapeHtml(s.title)}</div>
+                        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">${s.createdAt} · ${s.messages.length}条消息</div>
+                    </div>
+                    <button class="navbar-btn" onclick="event.stopPropagation();deleteChat('${s.id}')" style="color:var(--red);font-size:12px;">删除</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // 新建对话
+    function newChat() {
+        const session = {
+            id: Date.now().toString(),
+            title: '新对话',
+            messages: [],
+            createdAt: new Date().toISOString().split('T')[0]
+        };
+        chatSessions.push(session);
+        DB.set('chatSessions', chatSessions);
+        openChat(session.id);
+    }
+
+    // 打开对话
+    function openChat(sessionId) {
+        currentSessionId = sessionId;
+        const session = chatSessions.find(s => s.id === sessionId);
+        if (!session) return;
+        chatHistory = session.messages;
+        chatListView.style.display = 'none';
+        chatDetailView.style.display = 'block';
+        renderChat();
+    }
+
+    // 返回列表
+    function backToChatList() {
+        chatDetailView.style.display = 'none';
+        chatListView.style.display = 'block';
+        currentSessionId = null;
+        renderChatList();
+    }
+
+    // 删除对话
+    function deleteChat(sessionId) {
+        if (!confirm('确定删除这条对话？')) return;
+        chatSessions = chatSessions.filter(s => s.id !== sessionId);
+        DB.set('chatSessions', chatSessions);
+        renderChatList();
+    }
+
+    function renderChat() {
+        if (chatHistory.length === 0) {
+            chatMessages.innerHTML = '';
+            addAIMessage('你好！我是你的投资决策助手。\n\n聊聊你的投资想法，我帮你理清思路：\n• "我想买中芯国际"\n• "工商银行要不要止盈"\n• "大跌了好慌要不要割肉"');
+            return;
+        }
+        chatMessages.innerHTML = '';
+        chatHistory.forEach(msg => {
+            appendBubble(msg.role, msg.content);
+        });
+        scrollChat();
+    }
+
+    function appendBubble(role, content) {
+        const div = document.createElement('div');
+        div.className = `message ${role === 'assistant' ? 'ai' : 'user'}`;
+        div.innerHTML = `<div class="bubble">${escapeHtml(content)}</div>`;
+        chatMessages.appendChild(div);
+    }
+
+    function addAIMessage(content) {
+        chatHistory.push({ role: 'assistant', content });
+        saveCurrentSession();
+        appendBubble('assistant', content);
+        scrollChat();
+    }
+
+    function addUserMessage(content) {
+        chatHistory.push({ role: 'user', content });
+        saveCurrentSession();
+        appendBubble('user', content);
+        scrollChat();
+    }
+
+    function saveCurrentSession() {
+        if (!currentSessionId) return;
+        const session = chatSessions.find(s => s.id === currentSessionId);
+        if (session) {
+            session.messages = chatHistory;
+            // 用第一条用户消息作为标题
+            const firstUser = chatHistory.find(m => m.role === 'user');
+            if (firstUser) {
+                session.title = firstUser.content.slice(0, 20) + (firstUser.content.length > 20 ? '...' : '');
+            }
+            DB.set('chatSessions', chatSessions);
+        }
+    }
+
+    function showTyping() {
+        const div = document.createElement('div');
+        div.className = 'message ai';
+        div.id = 'typingIndicator';
+        div.innerHTML = `<div class="bubble"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
+        chatMessages.appendChild(div);
+        scrollChat();
+    }
+
+    function removeTyping() {
+        const el = document.getElementById('typingIndicator');
+        if (el) el.remove();
+    }
+
+    function scrollChat() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+    chatSend.addEventListener('click', sendMessage);
+
+    async function sendMessage() {
+        const text = chatInput.value.trim();
+        if (!text) return;
+        if (!apiKey) {
+            alert('请先点击右上角"设置"填写 DeepSeek API Key');
+            return;
+        }
+
+        chatInput.value = '';
+        chatSend.disabled = true;
+        addUserMessage(text);
+        showTyping();
+
+        try {
+            const systemPrompt = buildSystemPrompt();
+            const messages = [
+                { role: 'system', content: systemPrompt },
+                ...chatHistory.slice(-20).map(m => ({ role: m.role, content: m.content }))
+            ];
+
+            const response = await fetch('https://api.deepseek.com/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'deepseek-chat',
+                    messages,
+                    temperature: 0.7,
+                    max_tokens: 800
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`API错误(${response.status})`);
+            }
+
+            const data = await response.json();
+            const reply = data.choices[0].message.content;
+
+            removeTyping();
+            addAIMessage(reply);
+
+            // 检查是否要保存决策卡片
+            checkForDecisionCard(reply, text);
+
+        } catch (error) {
+            removeTyping();
+            addAIMessage(`抱歉，出错了：${error.message}`);
+        }
+
+        chatSend.disabled = false;
+    }
+
+    function buildSystemPrompt() {
+        const allStyles = [
+            ...selectedPresets.map(i => PRESET_STYLES[i]),
+            ...investStyles
+        ];
+        const styleText = allStyles.length > 0 ? allStyles.join('；') : '未设置';
+
+        let holdingsInfo = '';
+        if (holdings.length > 0) {
+            holdingsInfo = '\n\n当前持仓：\n' + holdings.map(h =>
+                `- ${h.name}：买入价${h.price}，${h.qty}股，止损${h.stop}，目标${h.target}，理由：${h.reason}，日期：${h.date || '未知'}`
+            ).join('\n');
+        }
+
+        let reviewsInfo = '';
+        if (reviews.length > 0) {
+            const recent = reviews.slice(-10);
+            const totalProfit = reviews.reduce((s, r) => s + r.profit, 0).toFixed(2);
+            const winRate = ((reviews.filter(r => r.profit > 0).length / reviews.length) * 100).toFixed(0);
+            reviewsInfo = `\n\n用户的复盘数据（共${reviews.length}笔交易，胜率${winRate}%，累计盈亏${totalProfit}元）：\n` + recent.map(r =>
+                `- ${r.name}：买入价${r.buyPrice}→卖出价${r.sellPrice}，收益率${r.rate >= 0 ? '+' : ''}${r.rate}%，数量${r.qty}股，盈亏${r.profit}元，持有${r.buyDate}~${r.sellDate}，买入理由：${r.reason}，卖出理由：${r.sellReason || '未填写'}`
+            ).join('\n');
+        }
+
+        return `你是一个股票决策陪练助手。你的角色是帮助用户在买入或卖出前理清思路，避免冲动交易。
+
+用户投资风格：${styleText}
+${holdingsInfo}
+${reviewsInfo}
+
+你的工作方式：
+1. 当用户说想买某只股票时，追问3个关键问题：买入逻辑是什么？计划仓位多少？如果跌了怎么办（止损线）？
+2. 当用户说想卖时，帮他回顾买入理由是否还成立，情绪是否在影响判断
+3. 当用户慌张时，帮他冷静分析，不要附和恐慌情绪
+4. 永远不要直接说"买"或"不买"，而是通过提问让用户自己想清楚
+5. 如果发现用户的决策存在明显风险（如仓位过重、追高、情绪化），直接指出
+6. 用户提到某只持仓股或历史交易时，结合上面的数据给出针对性回应
+
+语气要求：像一个有经验的朋友，直接、不啰嗦、偶尔可以幽默。用口语化中文。回复控制在3-5句话以内。`;
+    }
+
+    function checkForDecisionCard(aiReply, userMsg) {
+        // 简单判断：如果用户确认了买入，自动提示保存
+        const buyKeywords = ['买入', '已经买了', '下单了', '建仓了', '加仓了'];
+        if (buyKeywords.some(k => userMsg.includes(k))) {
+            setTimeout(() => {
+                addAIMessage('💡 需要我帮你记录这笔持仓吗？点击底部"持仓"tab可以手动添加记录。');
+            }, 1000);
+        }
+    }
+
+    // ====== 持仓管理 ======
+    function renderHoldings() {
+        const content = document.getElementById('holdingsContent');
+        if (holdings.length === 0) {
+            content.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📊</div>
+                    <div class="empty-text">还没有持仓记录</div>
+                    <p style="color:var(--text-secondary);font-size:13px;margin-top:8px">记录每笔交易的买入理由和止损线</p>
+                </div>
+                <button class="btn btn-primary btn-full" onclick="showAddHolding()">+ 添加持仓</button>
+            `;
+            return;
+        }
+
+        let html = '<div class="card">';
+        holdings.forEach((h, i) => {
+            html += `
+                <div class="holding-item" style="flex-direction:column;align-items:stretch;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <div class="holding-name">${escapeHtml(h.name)}</div>
+                            <div class="holding-meta">
+                                ${h.qty}股 × ${h.price}
+                                <span class="tag tag-stop">止损 ${h.stop}</span>
+                                <span class="tag tag-target">目标 ${h.target}</span>
+                            </div>
+                            <div class="holding-reason">${escapeHtml(h.reason)}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;margin-top:10px;">
+                        <button class="navbar-btn" onclick="toggleHoldingAI(${i})" style="font-size:12px;" id="holdingAIBtn_${i}">🤖 AI分析</button>
+                        <button class="navbar-btn" onclick="sellHolding(${i})" style="font-size:12px;">卖出</button>
+                        <button class="navbar-btn" onclick="editHolding(${i})" style="font-size:12px;">修改</button>
+                        <button class="navbar-btn" onclick="deleteHolding(${i})" style="font-size:12px;color:var(--red);">删除</button>
+                    </div>
+                    <div id="holdingAI_${i}" style="display:none;margin-top:10px;padding:12px;background:var(--bg);border-radius:8px;">
+                        <div id="holdingAIChat_${i}" style="max-height:300px;overflow-y:auto;font-size:13px;line-height:1.6;"></div>
+                        <div style="display:flex;gap:8px;margin-top:10px;">
+                            <input type="text" class="form-input" id="holdingAIInput_${i}" placeholder="继续追问..." style="flex:1;margin:0;font-size:13px;" onkeydown="if(event.key==='Enter')sendHoldingAI(${i})" />
+                            <button class="btn btn-primary" onclick="sendHoldingAI(${i})" style="white-space:nowrap;font-size:12px;padding:6px 12px;">发送</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        html += `<button class="btn btn-primary btn-full" style="margin-top:12px" onclick="showAddHolding()">+ 添加持仓</button>`;
+        content.innerHTML = html;
+    }
+
+    const holdingAIMsgs = {};
+
+    async function toggleHoldingAI(index) {
+        const div = document.getElementById('holdingAI_' + index);
+        if (div.style.display !== 'none') {
+            div.style.display = 'none';
+            return;
+        }
+        div.style.display = 'block';
+
+        if (holdingAIMsgs[index]) {
+            renderHoldingAIChat(index);
+            return;
+        }
+
+        if (!apiKey) {
+            document.getElementById('holdingAIChat_' + index).innerHTML = '<div style="color:var(--text-secondary);">请先设置 API Key</div>';
+            return;
+        }
+
+        const h = holdings[index];
+        holdingAIMsgs[index] = [
+            { role: 'system', content: '你是持仓分析助手。针对用户的持仓进行分析和讨论。简洁中文回答，用户可能会追问细节。' },
+            { role: 'user', content: `请分析这笔持仓：股票:${h.name}, 买入价:${h.price}, 数量:${h.qty}股, 止损:${h.stop}, 目标:${h.target}, 买入理由:${h.reason}, 买入日期:${h.date || '未知'}` }
+        ];
+        renderHoldingAIChat(index);
+
+        try {
+            const resp = await fetch('https://api.deepseek.com/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                body: JSON.stringify({ model: 'deepseek-chat', messages: holdingAIMsgs[index], temperature: 0.7, max_tokens: 400 })
+            });
+            const data = await resp.json();
+            const reply = data.choices[0].message.content;
+            holdingAIMsgs[index].push({ role: 'assistant', content: reply });
+            renderHoldingAIChat(index);
+        } catch (e) {
+            document.getElementById('holdingAIChat_' + index).innerHTML += `<div style="color:var(--red);font-size:13px;">分析失败：${e.message}</div>`;
+        }
+    }
+
+    async function sendHoldingAI(index) {
+        const input = document.getElementById('holdingAIInput_' + index);
+        const text = input.value.trim();
+        if (!text || !apiKey) return;
+        input.value = '';
+
+        holdingAIMsgs[index].push({ role: 'user', content: text });
+        renderHoldingAIChat(index);
+
+        try {
+            const resp = await fetch('https://api.deepseek.com/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                body: JSON.stringify({ model: 'deepseek-chat', messages: holdingAIMsgs[index], temperature: 0.7, max_tokens: 400 })
+            });
+            const data = await resp.json();
+            const reply = data.choices[0].message.content;
+            holdingAIMsgs[index].push({ role: 'assistant', content: reply });
+            renderHoldingAIChat(index);
+        } catch (e) {
+            document.getElementById('holdingAIChat_' + index).innerHTML += `<div style="color:var(--red);font-size:13px;">回复失败：${e.message}</div>`;
+        }
+    }
+
+    function renderHoldingAIChat(index) {
+        const chatDiv = document.getElementById('holdingAIChat_' + index);
+        chatDiv.innerHTML = holdingAIMsgs[index].filter(m => m.role !== 'system').map(m => {
+            const isUser = m.role === 'user';
+            return `<div style="margin-bottom:8px;text-align:${isUser ? 'right' : 'left'};">
+                <div style="display:inline-block;max-width:85%;padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.6;white-space:pre-wrap;background:${isUser ? 'var(--accent)' : 'var(--card)'};color:${isUser ? '#fff' : 'var(--text)'};">${escapeHtml(m.content)}</div>
+            </div>`;
+        }).join('');
+        chatDiv.scrollTop = chatDiv.scrollHeight;
+    }
+
+    function showAddHolding() {
+        document.getElementById('addHoldingModal').classList.add('show');
+    }
+
+    document.getElementById('addHoldingCancel').addEventListener('click', () => {
+        document.getElementById('addHoldingModal').classList.remove('show');
+    });
+
+    document.getElementById('addHoldingSave').addEventListener('click', () => {
+        const name = document.getElementById('holdingName').value.trim();
+        const price = document.getElementById('holdingPrice').value;
+        const qty = document.getElementById('holdingQty').value;
+        const stop = document.getElementById('holdingStop').value;
+        const target = document.getElementById('holdingTarget').value;
+        const reason = document.getElementById('holdingReason').value.trim();
+
+        if (!name || !price) {
+            alert('请至少填写股票名称和买入价格');
+            return;
+        }
+
+        holdings.push({
+            name, price: +price, qty: +qty || 0,
+            stop: +stop || 0, target: +target || 0,
+            reason: reason || '未填写',
+            date: new Date().toISOString().split('T')[0]
+        });
+        DB.set('holdings', holdings);
+
+        // 清空表单
+        ['holdingName','holdingPrice','holdingQty','holdingStop','holdingTarget','holdingReason'].forEach(id => {
+            document.getElementById(id).value = '';
+        });
+
+        document.getElementById('addHoldingModal').classList.remove('show');
+        renderHoldings();
+    });
+
+
+    // ====== 复盘日志 ======
+    function renderReviews() {
+        const content = document.getElementById('reviewContent');
+        if (reviews.length === 0) {
+            content.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📝</div>
+                    <div class="empty-text">还没有复盘记录</div>
+                    <p style="color:var(--text-secondary);font-size:13px;margin-top:8px">卖出持仓后自动生成</p>
+                </div>
+                <button class="btn btn-primary btn-full" onclick="showManualReview()">+ 手动添加记录</button>
+            `;
+            return;
+        }
+
+        // 统计
+        const totalTrades = reviews.length;
+        const wins = reviews.filter(r => r.profit > 0).length;
+        const winRate = ((wins / totalTrades) * 100).toFixed(0);
+        const totalProfit = reviews.reduce((s, r) => s + r.profit, 0).toFixed(2);
+        const avgProfit = (reviews.reduce((s, r) => s + r.rate, 0) / totalTrades).toFixed(1);
+
+        let html = `
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value">${totalTrades}</div>
+                    <div class="stat-label">总交易</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" style="color:${+winRate >= 50 ? 'var(--red)' : 'var(--green)'}">${winRate}%</div>
+                    <div class="stat-label">胜率</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" style="color:${+totalProfit >= 0 ? 'var(--red)' : 'var(--green)'}">${+totalProfit >= 0 ? '+' : ''}${totalProfit}</div>
+                    <div class="stat-label">累计盈亏</div>
+                </div>
+            </div>
+
+        `;
+
+        html += '<div class="card">';
+        reviews.slice().reverse().forEach((r, displayIdx) => {
+            const realIdx = reviews.length - 1 - displayIdx;
+            const color = r.profit >= 0 ? 'var(--red)' : 'var(--green)';
+            html += `
+                <div class="log-item">
+                    <div class="log-header">
+                        <span class="log-stock">${escapeHtml(r.name)}</span>
+                        <span class="log-result" style="color:${color}">${r.profit >= 0 ? '+' : ''}${r.profit} (${r.rate >= 0 ? '+' : ''}${r.rate}%)</span>
+                    </div>
+                    <div class="log-detail">
+                        买入：${r.buyPrice} → 卖出：${r.sellPrice} | ${r.qty}股<br>
+                        持有：${r.buyDate} ~ ${r.sellDate}<br>
+                        买入理由：${escapeHtml(r.reason)}<br>
+                        卖出理由：${escapeHtml(r.sellReason || '未填写')}
+                    </div>
+                    <div style="margin-top:8px;display:flex;gap:8px;">
+                        <button class="navbar-btn" onclick="toggleReviewAI(${realIdx})" style="font-size:12px;">🤖 AI复盘</button>
+                        <button class="navbar-btn" onclick="deleteReview(${realIdx})" style="font-size:12px;color:var(--red);">删除</button>
+                    </div>
+                    <div id="reviewAI_${realIdx}" style="display:none;margin-top:10px;padding:12px;background:var(--bg);border-radius:8px;">
+                        <div id="reviewAIChat_${realIdx}" style="max-height:300px;overflow-y:auto;font-size:13px;line-height:1.6;"></div>
+                        <div style="display:flex;gap:8px;margin-top:10px;">
+                            <input type="text" class="form-input" id="reviewAIInput_${realIdx}" placeholder="继续追问..." style="flex:1;margin:0;font-size:13px;" onkeydown="if(event.key==='Enter')sendReviewAI(${realIdx})" />
+                            <button class="btn btn-primary" onclick="sendReviewAI(${realIdx})" style="white-space:nowrap;font-size:12px;padding:6px 12px;">发送</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+
+        html += `<button class="btn btn-primary btn-full" style="margin-top:12px" onclick="showManualReview()">+ 手动添加记录</button>`;
+
+        content.innerHTML = html;
+    }
+
+    // ====== 复盘 AI 分析（每条记录独立对话，展开/收纳） ======
+    const reviewAIMsgs = {};
+
+    async function toggleReviewAI(index) {
+        const div = document.getElementById('reviewAI_' + index);
+        if (div.style.display !== 'none') {
+            div.style.display = 'none';
+            return;
+        }
+        div.style.display = 'block';
+
+        if (reviewAIMsgs[index]) {
+            renderReviewAIChat(index);
+            return;
+        }
+
+        if (!apiKey) {
+            document.getElementById('reviewAIChat_' + index).innerHTML = '<div style="color:var(--text-secondary);">请先设置 API Key</div>';
+            return;
+        }
+
+        const r = reviews[index];
+        const tradeInfo = `股票:${r.name}, 买入价:${r.buyPrice}, 卖出价:${r.sellPrice}, 收益率:${r.rate}%, 持有:${r.buyDate}~${r.sellDate}, 买入理由:${r.reason}, 卖出理由:${r.sellReason || '未填写'}`;
+
+        reviewAIMsgs[index] = [
+            { role: 'system', content: '你是交易复盘教练。针对这笔交易做复盘分析，用户可能会追问或说出自己的想法，请给出有价值的回应。简洁中文回答。' },
+            { role: 'user', content: `请复盘这笔交易：${tradeInfo}` }
+        ];
+        renderReviewAIChat(index);
+
+        try {
+            const resp = await fetch('https://api.deepseek.com/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                body: JSON.stringify({ model: 'deepseek-chat', messages: reviewAIMsgs[index], temperature: 0.7, max_tokens: 400 })
+            });
+            const data = await resp.json();
+            const reply = data.choices[0].message.content;
+            reviewAIMsgs[index].push({ role: 'assistant', content: reply });
+            renderReviewAIChat(index);
+        } catch (e) {
+            document.getElementById('reviewAIChat_' + index).innerHTML += `<div style="color:var(--red);font-size:13px;">分析失败：${e.message}</div>`;
+        }
+    }
+
+    async function sendReviewAI(index) {
+        const input = document.getElementById('reviewAIInput_' + index);
+        const text = input.value.trim();
+        if (!text || !apiKey) return;
+        input.value = '';
+
+        reviewAIMsgs[index].push({ role: 'user', content: text });
+        renderReviewAIChat(index);
+
+        try {
+            const resp = await fetch('https://api.deepseek.com/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                body: JSON.stringify({ model: 'deepseek-chat', messages: reviewAIMsgs[index], temperature: 0.7, max_tokens: 400 })
+            });
+            const data = await resp.json();
+            const reply = data.choices[0].message.content;
+            reviewAIMsgs[index].push({ role: 'assistant', content: reply });
+            renderReviewAIChat(index);
+        } catch (e) {
+            document.getElementById('reviewAIChat_' + index).innerHTML += `<div style="color:var(--red);font-size:13px;">回复失败：${e.message}</div>`;
+        }
+    }
+
+    function renderReviewAIChat(index) {
+        const chatDiv = document.getElementById('reviewAIChat_' + index);
+        chatDiv.innerHTML = reviewAIMsgs[index].filter(m => m.role !== 'system').map(m => {
+            const isUser = m.role === 'user';
+            return `<div style="margin-bottom:8px;text-align:${isUser ? 'right' : 'left'};">
+                <div style="display:inline-block;max-width:85%;padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.6;white-space:pre-wrap;background:${isUser ? 'var(--accent)' : 'var(--card)'};color:${isUser ? '#fff' : 'var(--text)'};">${escapeHtml(m.content)}</div>
+            </div>`;
+        }).join('');
+        chatDiv.scrollTop = chatDiv.scrollHeight;
+    }
+
+    // 删除复盘记录
+    function deleteReview(index) {
+        if (!confirm(`确定删除 ${reviews[index].name} 的记录吗？`)) return;
+        reviews.splice(index, 1);
+        DB.set('reviews', reviews);
+        renderReviews();
+    }
+
+    // 手动添加复盘记录
+    function showManualReview() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('reviewName').value = '';
+        document.getElementById('reviewBuyPrice').value = '';
+        document.getElementById('reviewSellPrice').value = '';
+        document.getElementById('reviewQty').value = '';
+        document.getElementById('reviewReason').value = '';
+        document.getElementById('reviewSellReason').value = '';
+        document.getElementById('reviewBuyDate').value = today;
+        document.getElementById('reviewSellDate').value = today;
+        document.getElementById('addReviewModal').classList.add('show');
+    }
+
+    document.getElementById('addReviewCancel').addEventListener('click', () => {
+        document.getElementById('addReviewModal').classList.remove('show');
+    });
+
+    document.getElementById('addReviewSave').addEventListener('click', () => {
+        const name = document.getElementById('reviewName').value.trim();
+        const buyPrice = parseFloat(document.getElementById('reviewBuyPrice').value);
+        const sellPrice = parseFloat(document.getElementById('reviewSellPrice').value);
+        const qty = parseInt(document.getElementById('reviewQty').value) || 0;
+        const reason = document.getElementById('reviewReason').value.trim() || '未填写';
+        const sellReason = document.getElementById('reviewSellReason').value.trim() || '未填写';
+        const buyDate = document.getElementById('reviewBuyDate').value;
+        const sellDate = document.getElementById('reviewSellDate').value;
+
+        if (!name || isNaN(buyPrice) || isNaN(sellPrice)) {
+            alert('请填写股票名称、买入价格和卖出价格');
+            return;
+        }
+
+        const profit = ((sellPrice - buyPrice) * qty).toFixed(2);
+        const rate = (((sellPrice - buyPrice) / buyPrice) * 100).toFixed(2);
+
+        reviews.push({ name, buyPrice, sellPrice, qty, profit: +profit, rate: +rate, reason, sellReason, buyDate, sellDate });
+        DB.set('reviews', reviews);
+        document.getElementById('addReviewModal').classList.remove('show');
+        renderReviews();
+    });
+
+    // ====== 持仓卖出（弹窗） ======
+    let sellingIndex = -1;
+    function sellHolding(index) {
+        sellingIndex = index;
+        const h = holdings[index];
+        document.getElementById('sellTitle').textContent = `卖出 ${h.name}`;
+        document.getElementById('sellQty').value = h.qty;
+        document.getElementById('sellQty').max = h.qty;
+        document.getElementById('sellQtyHint').textContent = `当前持有 ${h.qty} 股，买入价 ${h.price}`;
+        document.getElementById('sellPrice').value = '';
+        document.getElementById('sellDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('sellReason').value = '';
+        document.getElementById('sellHoldingModal').classList.add('show');
+    }
+
+    document.getElementById('sellHoldingCancel').addEventListener('click', () => {
+        document.getElementById('sellHoldingModal').classList.remove('show');
+    });
+
+    document.getElementById('sellHoldingSave').addEventListener('click', () => {
+        if (sellingIndex < 0) return;
+        const h = holdings[sellingIndex];
+        const qty = Math.min(+document.getElementById('sellQty').value, h.qty);
+        const sellPrice = +document.getElementById('sellPrice').value;
+
+        if (qty <= 0 || isNaN(qty)) { alert('请输入有效数量'); return; }
+        if (!sellPrice || isNaN(sellPrice)) { alert('请输入卖出价格'); return; }
+
+        const profit = ((sellPrice - h.price) * qty).toFixed(2);
+        const rate = (((sellPrice - h.price) / h.price) * 100).toFixed(2);
+
+        const sellReason = document.getElementById('sellReason').value.trim() || '未填写';
+        reviews.push({
+            name: h.name, buyPrice: h.price, sellPrice,
+            qty, profit: +profit, rate: +rate,
+            reason: h.reason, sellReason,
+            buyDate: h.date, sellDate: document.getElementById('sellDate').value || new Date().toISOString().split('T')[0]
+        });
+        DB.set('reviews', reviews);
+
+        if (qty >= h.qty) {
+            holdings.splice(sellingIndex, 1);
+        } else {
+            holdings[sellingIndex].qty = h.qty - qty;
+        }
+        DB.set('holdings', holdings);
+        document.getElementById('sellHoldingModal').classList.remove('show');
+        renderHoldings();
+    });
+
+    // 修改持仓（弹窗）
+    let editingIndex = -1;
+    function editHolding(index) {
+        editingIndex = index;
+        const h = holdings[index];
+        document.getElementById('editName').value = h.name;
+        document.getElementById('editPrice').value = h.price;
+        document.getElementById('editQty').value = h.qty;
+        document.getElementById('editStop').value = h.stop;
+        document.getElementById('editTarget').value = h.target;
+        document.getElementById('editReason').value = h.reason;
+        document.getElementById('editDate').value = h.date || '';
+        document.getElementById('editHoldingModal').classList.add('show');
+    }
+
+    document.getElementById('editHoldingCancel').addEventListener('click', () => {
+        document.getElementById('editHoldingModal').classList.remove('show');
+    });
+
+    document.getElementById('editHoldingSave').addEventListener('click', () => {
+        if (editingIndex < 0) return;
+        holdings[editingIndex] = {
+            ...holdings[editingIndex],
+            name: document.getElementById('editName').value.trim() || holdings[editingIndex].name,
+            price: +document.getElementById('editPrice').value || holdings[editingIndex].price,
+            qty: +document.getElementById('editQty').value || holdings[editingIndex].qty,
+            stop: +document.getElementById('editStop').value || 0,
+            target: +document.getElementById('editTarget').value || 0,
+            reason: document.getElementById('editReason').value.trim() || '未填写',
+            date: document.getElementById('editDate').value || holdings[editingIndex].date
+        };
+        DB.set('holdings', holdings);
+        document.getElementById('editHoldingModal').classList.remove('show');
+        renderHoldings();
+    });
+
+    // 删除持仓
+    function deleteHolding(index) {
+        const h = holdings[index];
+        if (!confirm(`确定删除 ${h.name} 的持仓记录吗？（不会记入复盘）`)) return;
+        holdings.splice(index, 1);
+        DB.set('holdings', holdings);
+        renderHoldings();
+    }
+
+    // ====== 余额查询 ======
+    async function queryBalance() {
+        if (!apiKey) { alert('请先设置 API Key'); return; }
+        const content = document.getElementById('balanceContent');
+        content.innerHTML = '<div style="text-align:center;padding:60px 20px;"><span class="spinner"></span><div style="margin-top:12px;font-size:13px;color:var(--text-secondary);">正在查询余额...</div></div>';
+
+        try {
+            const resp = await fetch('https://api.deepseek.com/user/balance', {
+                headers: { 'Authorization': `Bearer ${apiKey}` }
+            });
+
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const data = await resp.json();
+
+            const info = data.balance_infos || [];
+            let total = 0;
+            if (info.length > 0) {
+                total = info.reduce((s, b) => s + parseFloat(b.total_balance || 0), 0);
+            }
+
+            content.innerHTML = `
+                <div style="text-align:center;padding:60px 20px;">
+                    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">DeepSeek 总余额</div>
+                    <div style="font-size:48px;font-weight:800;color:var(--green);letter-spacing:-1px;">¥ ${total.toFixed(2)}</div>
+                    <div style="margin-top:32px;">
+                        <button class="btn" style="font-size:13px;padding:8px 20px;border-radius:20px;background:var(--card);border:1px solid var(--border);color:var(--text-secondary);" onclick="queryBalance()">刷新</button>
+                    </div>
+                </div>`;
+        } catch (e) {
+            content.innerHTML = `
+                <div style="text-align:center;padding:60px 20px;">
+                    <div style="font-size:36px;margin-bottom:12px;">😵</div>
+                    <div style="font-size:14px;color:var(--text-secondary);margin-bottom:8px;">余额查询失败</div>
+                    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:24px;">${e.message}</div>
+                    <button class="btn btn-primary" style="padding:10px 28px;border-radius:20px;" onclick="queryBalance()">重新查询</button>
+                </div>`;
+        }
+    }
+
+    // ====== 工具函数 ======
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // ====== 初始化 ======
+    renderChatList();
+    if (!apiKey) {
+        setTimeout(() => {
+            settingsModal.classList.add('show');
+        }, 500);
+    }
+    </script>
+</body>
+</html>
