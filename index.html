@@ -449,7 +449,7 @@
             <div class="chat-container">
                 <div class="chat-messages" id="chatMessages"></div>
                 <div class="chat-input-area">
-                    <textarea class="chat-input" id="chatInput" placeholder="聊聊你的投资想法..." rows="1"></textarea>
+                    <textarea class="chat-input" id="chatInput" placeholder="说说你的交易想法..." rows="1"></textarea>
                     <button class="chat-send" id="chatSend">↑</button>
                 </div>
             </div>
@@ -484,20 +484,20 @@
     <!-- 底部Tab -->
     <div class="tab-bar">
         <button class="tab-item active" data-page="pageTrain">
-            <span class="tab-icon">💬</span>
-            <span>聊天</span>
+            <span class="tab-icon">🧠</span>
+            <span>决策</span>
         </button>
         <button class="tab-item" data-page="pageHoldings">
             <span class="tab-icon">📊</span>
             <span>持仓</span>
         </button>
         <button class="tab-item" data-page="pageReview">
-            <span class="tab-icon">📝</span>
+            <span class="tab-icon">🎯</span>
             <span>复盘</span>
         </button>
         <button class="tab-item" data-page="pageDiary">
-            <span class="tab-icon">📔</span>
-            <span>日记</span>
+            <span class="tab-icon">💭</span>
+            <span>情绪</span>
         </button>
         <button class="tab-item" data-page="pageBalance">
             <span class="tab-icon">💰</span>
@@ -514,7 +514,7 @@
                 <input type="password" class="form-input" id="settingsApiKey" placeholder="sk-..." />
             </div>
             <div class="form-group">
-                <label class="form-label">投资风格（选择或自定义，AI会据此给出建议）</label>
+                <label class="form-label">投资风格（AI 会基于此调整建议方向）</label>
                 <div id="presetStylesContainer" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>
                 <div id="styleTagsContainer" style="display:none;"></div>
                 <button class="btn btn-secondary" id="addStyleTag" style="display:none;">+ 添加自定义</button>
@@ -556,15 +556,15 @@
             </div>
             <div class="form-group">
                 <label class="form-label">止损价</label>
-                <input type="number" class="form-input" id="holdingStop" placeholder="跌到多少卖" step="0.01" />
+                <input type="number" class="form-input" id="holdingStop" placeholder="破位即走的底线" step="0.01" />
             </div>
             <div class="form-group">
                 <label class="form-label">目标价</label>
-                <input type="number" class="form-input" id="holdingTarget" placeholder="涨到多少卖" step="0.01" />
+                <input type="number" class="form-input" id="holdingTarget" placeholder="落袋为安的目标" step="0.01" />
             </div>
             <div class="form-group">
                 <label class="form-label">买入理由</label>
-                <textarea class="form-input" id="holdingReason" rows="2" placeholder="为什么买？"></textarea>
+                <textarea class="form-input" id="holdingReason" rows="2" placeholder="你的买入逻辑是什么？"></textarea>
             </div>
             <div class="modal-actions">
                 <button class="btn btn-secondary" id="addHoldingCancel">取消</button>
@@ -635,7 +635,7 @@
             </div>
             <div class="form-group">
                 <label class="form-label">卖出理由</label>
-                <textarea class="form-input" id="sellReason" rows="2" placeholder="为什么卖？"></textarea>
+                <textarea class="form-input" id="sellReason" rows="2" placeholder="触发了什么卖出条件？"></textarea>
             </div>
             <div class="modal-actions">
                 <button class="btn btn-secondary" id="sellHoldingCancel">取消</button>
@@ -662,7 +662,7 @@
             </div>
             <div class="form-group">
                 <label class="form-label">买入理由</label>
-                <textarea class="form-input" id="addPosReason" rows="2" placeholder="为什么加仓？"></textarea>
+                <textarea class="form-input" id="addPosReason" rows="2" placeholder="加仓的逻辑依据？"></textarea>
             </div>
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="document.getElementById('addPositionModal').classList.remove('show')">取消</button>
@@ -693,11 +693,11 @@
             </div>
             <div class="form-group">
                 <label class="form-label">买入理由</label>
-                <textarea class="form-input" id="reviewReason" rows="2" placeholder="为什么买？"></textarea>
+                <textarea class="form-input" id="reviewReason" rows="2" placeholder="你的买入逻辑是什么？"></textarea>
             </div>
             <div class="form-group">
                 <label class="form-label">卖出理由</label>
-                <textarea class="form-input" id="reviewSellReason" rows="2" placeholder="为什么卖？"></textarea>
+                <textarea class="form-input" id="reviewSellReason" rows="2" placeholder="触发了什么卖出条件？"></textarea>
             </div>
             <div class="form-group">
                 <label class="form-label">买入日期</label>
@@ -807,7 +807,7 @@
     const tabs = document.querySelectorAll('.tab-item');
     const pages = document.querySelectorAll('.page');
     const pageTitle = document.getElementById('pageTitle');
-    const titles = { pageTrain: '聊天', pageHoldings: '我的持仓', pageReview: '复盘日志', pageDiary: '交易日记', pageBalance: '余额' };
+    const titles = { pageTrain: '决策对话', pageHoldings: '我的持仓', pageReview: '复盘中心', pageDiary: '情绪日记', pageBalance: '余额' };
 
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
@@ -855,7 +855,7 @@
                 <button class="navbar-btn" onclick="removeStyleTag(${i})" style="color:var(--red);font-size:18px;padding:4px 8px;">×</button>
             </div>
         `).join('');
-        document.getElementById('addStyleTag').style.display = investStyles.length >= 3 ? 'none' : 'inline-block';
+        document.getElementById('addStyleTag').style.display = 'none';
     }
 
     document.getElementById('addStyleTag').addEventListener('click', () => {
@@ -1004,7 +1004,7 @@
     function renderChatList() {
         const list = document.getElementById('chatHistoryList');
         if (chatSessions.length === 0) {
-            list.innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-text">还没有对话记录</div><p style="color:var(--text-secondary);font-size:14px;margin-top:8px">点击下方按钮开始新对话</p></div>`;
+            list.innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-text">开始你的第一次决策对话</div><p style="color:var(--text-secondary);font-size:14px;margin-top:8px">每一次下单前，先和 AI 聊聊</p></div>`;
             return;
         }
         list.innerHTML = chatSessions.slice().reverse().map(s => `
@@ -1054,7 +1054,7 @@
 
     // 删除对话
     function deleteChat(sessionId) {
-        if (!confirm('确定删除这条对话？')) return;
+        if (!confirm('删除这条对话记录？')) return;
         chatSessions = chatSessions.filter(s => s.id !== sessionId);
         DB.set('chatSessions', chatSessions);
         renderChatList();
@@ -1063,7 +1063,7 @@
     function renderChat() {
         if (chatHistory.length === 0) {
             chatMessages.innerHTML = '';
-            addAIMessage('你好！我是你的投资决策助手。\n\n聊聊你的投资想法，我帮你理清思路：\n• "我想买中芯国际"\n• "工商银行要不要止盈"\n• "大跌了好慌要不要割肉"');
+            addAIMessage('你好，我是你的决策陪练。\n\n每次交易前跟我聊聊，我帮你检查盲区：\n• "我想买中芯国际，你觉得呢"\n• "持仓跌了8%，该止损吗"\n• "今天大涨想追，帮我冷静下"');
             return;
         }
         chatMessages.innerHTML = '';
@@ -1143,7 +1143,7 @@
         const text = chatInput.value.trim();
         if (!text) return;
         if (!apiKey) {
-            alert('请先点击右上角"设置"填写 DeepSeek API Key');
+            alert('需要先配置 API Key，点击右上角⚙️设置');
             return;
         }
 
@@ -1236,8 +1236,8 @@ ${reviewsInfo}
     }
 
     async function summarizeChat() {
-        if (!apiKey) { alert('请先设置 API Key'); return; }
-        if (chatHistory.length < 2) { alert('对话内容太少，无法汇总'); return; }
+        if (!apiKey) { alert('请先在设置中配置 API Key'); return; }
+        if (chatHistory.length < 2) { alert('至少聊几轮才能生成摘要'); return; }
 
         showTyping();
         const msgs = chatHistory.filter(m => m.role !== 'system').map(m => `${m.role === 'user' ? '我' : 'AI'}：${m.content}`).join('\n');
@@ -1271,7 +1271,7 @@ ${reviewsInfo}
         const buyKeywords = ['买入', '已经买了', '下单了', '建仓了', '加仓了'];
         if (buyKeywords.some(k => userMsg.includes(k))) {
             setTimeout(() => {
-                addAIMessage('💡 需要我帮你记录这笔持仓吗？点击底部"持仓"tab可以手动添加记录。');
+                addAIMessage('💡 要不要记录到持仓？点底部「持仓」即可添加。');
             }, 1000);
         }
     }
@@ -1283,8 +1283,8 @@ ${reviewsInfo}
             content.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-icon">📊</div>
-                    <div class="empty-text">还没有持仓记录</div>
-                    <p style="color:var(--text-secondary);font-size:14px;margin-top:8px">记录每笔交易的买入理由和止损线</p>
+                    <div class="empty-text">暂无持仓</div>
+                    <p style="color:var(--text-secondary);font-size:14px;margin-top:8px">记录每笔交易，让每个决策都有据可查</p>
                 </div>
                 <button class="btn" onclick="showAddHolding()" style="width:100%;font-size:14px;padding:11px 0;border-radius:14px;background:var(--gradient-accent);color:#fff;box-shadow:0 2px 10px rgba(0,122,255,0.2);">+ 添加持仓</button>
             `;
@@ -1300,7 +1300,7 @@ ${reviewsInfo}
         const reminders = getHoldingReminders();
         if (reminders.length > 0) {
             html += `<div class="card" style="background:rgba(255,149,0,0.08);border:1px solid rgba(255,149,0,0.2);margin-bottom:12px;">
-                <div style="font-size:14px;color:var(--text);margin-bottom:8px;">⏰ 你有 <strong>${reminders.length}</strong> 只持仓，记得每天回顾买入逻辑是否还成立</div>
+                <div style="font-size:14px;color:var(--text);margin-bottom:8px;">⏰ <strong>${reminders.length}</strong> 只持仓待回顾 — 买入逻辑还成立吗？</div>
                 <div id="dailySuggestion" style="margin-top:8px;padding:10px;background:var(--bg);border-radius:10px;"></div>
             </div>`;
         }
@@ -1443,7 +1443,7 @@ ${reviewsInfo}
         const reason = document.getElementById('holdingReason').value.trim();
 
         if (!name || !price) {
-            alert('请至少填写股票名称和买入价格');
+            alert('股票名称和买入价格为必填项');
             return;
         }
 
@@ -1471,8 +1471,8 @@ ${reviewsInfo}
             content.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-icon">📝</div>
-                    <div class="empty-text">还没有复盘记录</div>
-                    <p style="color:var(--text-secondary);font-size:14px;margin-top:8px">卖出持仓后自动生成</p>
+                    <div class="empty-text">暂无复盘记录</div>
+                    <p style="color:var(--text-secondary);font-size:14px;margin-top:8px">卖出后自动记录，也可手动添加</p>
                 </div>
                 <button class="btn" onclick="showManualReview()" style="width:100%;font-size:14px;padding:11px 0;border-radius:14px;background:var(--gradient-accent);color:#fff;box-shadow:0 2px 10px rgba(0,122,255,0.2);">+ 手动添加记录</button>
             `;
@@ -1486,9 +1486,10 @@ ${reviewsInfo}
         const totalProfit = reviews.reduce((s, r) => s + r.profit, 0).toFixed(2);
         const avgProfit = (reviews.reduce((s, r) => s + r.rate, 0) / totalTrades).toFixed(1);
 
-        let html = `<div style="display:flex;gap:10px;margin-bottom:16px;">
-            <button class="btn" style="flex:1;font-size:14px;padding:11px 0;border-radius:14px;background:var(--gradient-accent);color:#fff;box-shadow:0 2px 10px rgba(0,122,255,0.2);" onclick="showManualReview()">+ 手动添加</button>
-            <button class="btn" style="flex:1;font-size:14px;padding:11px 0;border-radius:14px;background:linear-gradient(135deg,#ff9500,#ff6b00);color:#fff;box-shadow:0 2px 10px rgba(255,149,0,0.2);" onclick="globalReview()">🤖 全局复盘</button>
+        let html = `<div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+            <button class="btn" style="flex:1;min-width:120px;font-size:14px;padding:11px 0;border-radius:14px;background:var(--gradient-accent);color:#fff;box-shadow:0 2px 10px rgba(0,122,255,0.2);" onclick="showManualReview()">+ 手动添加</button>
+            <button class="btn" style="flex:1;min-width:120px;font-size:14px;padding:11px 0;border-radius:14px;background:linear-gradient(135deg,#ff9500,#ff6b00);color:#fff;box-shadow:0 2px 10px rgba(255,149,0,0.2);" onclick="globalReview()">🤖 全局复盘</button>
+            <button class="btn" style="flex:1;min-width:120px;font-size:14px;padding:11px 0;border-radius:14px;background:linear-gradient(135deg,#5856d6,#af52de);color:#fff;box-shadow:0 2px 10px rgba(88,86,214,0.2);" onclick="generateWeeklyReport()">📊 周报</button>
         </div>`;
         html += '<div id="globalReviewResult" style="display:none;margin-bottom:16px;"></div>';
         html += renderProfitChart();
@@ -1526,8 +1527,21 @@ ${reviewsInfo}
                         买入理由：${escapeHtml(r.reason)}<br>
                         卖出理由：${escapeHtml(r.sellReason || '未填写')}
                     </div>
+                    ${r.scores ? `<div style="margin-top:10px;padding:10px 12px;background:var(--bg);border-radius:10px;">
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                            <span style="font-size:12px;padding:3px 8px;border-radius:10px;background:rgba(0,122,255,0.1);color:var(--accent);">纪律 ${r.scores.discipline}/10</span>
+                            <span style="font-size:12px;padding:3px 8px;border-radius:10px;background:rgba(52,199,89,0.1);color:var(--green);">仓位 ${r.scores.sizing}/10</span>
+                            <span style="font-size:12px;padding:3px 8px;border-radius:10px;background:rgba(255,149,0,0.1);color:var(--orange);">情绪 ${r.scores.emotion}/10</span>
+                            <span style="font-size:12px;padding:3px 8px;border-radius:10px;background:rgba(88,86,214,0.1);color:#5856d6;">时机 ${r.scores.timing}/10</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:18px;font-weight:800;color:var(--accent);">${r.scores.total}<span style="font-size:12px;font-weight:400;">/10</span></span>
+                            <span style="font-size:13px;color:var(--text-secondary);flex:1;">${r.scores.comment || ''}</span>
+                        </div>
+                    </div>` : ''}
                     <div style="margin-top:8px;display:flex;gap:8px;">
                         <button class="navbar-btn" onclick="toggleReviewAI(${realIdx})" style="font-size:13px;">🤖 AI复盘</button>
+                        ${!r.scores ? `<button class="navbar-btn" onclick="scoreDecision(${realIdx})" style="font-size:13px;">📊 打分</button>` : ''}
                         <button class="navbar-btn" onclick="editReview(${realIdx})" style="font-size:13px;">修改</button>
                         <button class="navbar-btn" onclick="deleteReview(${realIdx})" style="font-size:13px;color:var(--red);">删除</button>
                     </div>
@@ -1632,11 +1646,11 @@ ${reviewsInfo}
 
     // 全局AI复盘
     async function globalReview() {
-        if (!apiKey) { alert('请先设置 API Key'); return; }
+        if (!apiKey) { alert('请先在设置中配置 API Key'); return; }
         if (reviews.length === 0) { alert('暂无复盘数据'); return; }
         const resultDiv = document.getElementById('globalReviewResult');
         resultDiv.style.display = 'block';
-        resultDiv.innerHTML = '<div class="card" style="text-align:center;padding:20px;"><span class="spinner"></span><div style="margin-top:8px;font-size:14px;color:var(--text-secondary);">AI 正在分析你的交易历史...</div></div>';
+        resultDiv.innerHTML = '<div class="card" style="text-align:center;padding:20px;"><span class="spinner"></span><div style="margin-top:8px;font-size:14px;color:var(--text-secondary);">正在复盘你的交易决策...</div></div>';
 
         const totalProfit = reviews.reduce((s, r) => s + r.profit, 0).toFixed(2);
         const winRate = ((reviews.filter(r => r.profit > 0).length / reviews.length) * 100).toFixed(0);
@@ -1704,6 +1718,7 @@ ${reviewsInfo}
         const rate = (((sellPrice - buyPrice) / buyPrice) * 100).toFixed(2);
 
         reviews[editingReviewIdx] = {
+            ...reviews[editingReviewIdx],
             name, buyPrice, sellPrice, qty, profit: +profit, rate: +rate,
             reason: document.getElementById('editReviewReason').value.trim() || '未填写',
             sellReason: document.getElementById('editReviewSellReason').value.trim() || '未填写',
@@ -1717,9 +1732,18 @@ ${reviewsInfo}
 
     // 删除复盘记录
     function deleteReview(index) {
-        if (!confirm(`确定删除 ${reviews[index].name} 的记录吗？`)) return;
+        if (!confirm(`删除 ${reviews[index].name} 的复盘记录？`)) return;
         reviews.splice(index, 1);
         DB.set('reviews', reviews);
+        const newMsgs = {};
+        Object.keys(reviewAIMsgs).forEach(k => {
+            const ki = +k;
+            if (ki < index) newMsgs[ki] = reviewAIMsgs[ki];
+            else if (ki > index) newMsgs[ki - 1] = reviewAIMsgs[ki];
+        });
+        Object.keys(reviewAIMsgs).forEach(k => delete reviewAIMsgs[k]);
+        Object.assign(reviewAIMsgs, newMsgs);
+        DB.set('reviewAIMsgs', reviewAIMsgs);
         renderReviews();
     }
 
@@ -1797,12 +1821,13 @@ ${reviewsInfo}
         const rate = (((sellPrice - h.price) / h.price) * 100).toFixed(2);
 
         const sellReason = document.getElementById('sellReason').value.trim() || '未填写';
-        reviews.push({
+        const newReview = {
             name: h.name, buyPrice: h.price, sellPrice,
             qty, profit: +profit, rate: +rate,
             reason: h.reason, sellReason,
             buyDate: h.date, sellDate: document.getElementById('sellDate').value || new Date().toISOString().split('T')[0]
-        });
+        };
+        reviews.push(newReview);
         DB.set('reviews', reviews);
 
         if (qty >= h.qty) {
@@ -1813,6 +1838,7 @@ ${reviewsInfo}
         DB.set('holdings', holdings);
         document.getElementById('sellHoldingModal').classList.remove('show');
         renderHoldings();
+        scoreDecision(reviews.length - 1);
     });
 
     // 修改持仓（弹窗）
@@ -1856,9 +1882,18 @@ ${reviewsInfo}
     // 删除持仓
     function deleteHolding(index) {
         const h = holdings[index];
-        if (!confirm(`确定删除 ${h.name} 的持仓记录吗？（不会记入复盘）`)) return;
+        if (!confirm(`删除 ${h.name}？此操作不会生成复盘记录`)) return;
         holdings.splice(index, 1);
         DB.set('holdings', holdings);
+        const newMsgs = {};
+        Object.keys(holdingAIMsgs).forEach(k => {
+            const ki = +k;
+            if (ki < index) newMsgs[ki] = holdingAIMsgs[ki];
+            else if (ki > index) newMsgs[ki - 1] = holdingAIMsgs[ki];
+        });
+        Object.keys(holdingAIMsgs).forEach(k => delete holdingAIMsgs[k]);
+        Object.assign(holdingAIMsgs, newMsgs);
+        DB.set('holdingAIMsgs', holdingAIMsgs);
         renderHoldings();
     }
 
@@ -1876,7 +1911,7 @@ ${reviewsInfo}
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
                 ${MOODS.map((m, i) => `<button class="navbar-btn diary-mood-btn" data-mood="${i}" onclick="selectMood(${i})" style="font-size:13px;padding:6px 10px;border-radius:16px;border:1px solid ${todayEntry && todayEntry.mood === i ? 'var(--accent)' : 'var(--border)'};background:${todayEntry && todayEntry.mood === i ? 'var(--accent)' : 'transparent'};color:${todayEntry && todayEntry.mood === i ? '#fff' : 'var(--text)'};">${m}</button>`).join('')}
             </div>
-            <textarea class="form-input" id="diaryText" rows="3" placeholder="今天的市场感悟、操作反思...">${todayEntry ? escapeHtml(todayEntry.text) : ''}</textarea>
+            <textarea class="form-input" id="diaryText" rows="3" placeholder="今天做了什么决策？感受如何？">${todayEntry ? escapeHtml(todayEntry.text) : ''}</textarea>
             <button class="btn" style="width:100%;margin-top:12px;font-size:14px;padding:11px 0;border-radius:14px;background:var(--gradient-accent);color:#fff;box-shadow:0 2px 10px rgba(0,122,255,0.2);" onclick="saveDiary()">保存今日日记</button>
         </div>`;
 
@@ -1941,11 +1976,11 @@ ${reviewsInfo}
     }
 
     async function globalDiaryReview() {
-        if (!apiKey) { alert('请先设置 API Key'); return; }
+        if (!apiKey) { alert('请先在设置中配置 API Key'); return; }
         if (diaryEntries.length === 0) { alert('暂无日记数据'); return; }
         const resultDiv = document.getElementById('diaryReviewResult');
         resultDiv.style.display = 'block';
-        resultDiv.innerHTML = '<div class="card" style="text-align:center;padding:20px;"><span class="spinner"></span><div style="margin-top:8px;font-size:14px;color:var(--text-secondary);">AI 正在分析你的情绪模式...</div></div>';
+        resultDiv.innerHTML = '<div class="card" style="text-align:center;padding:20px;"><span class="spinner"></span><div style="margin-top:8px;font-size:14px;color:var(--text-secondary);">正在分析你的情绪与决策关联...</div></div>';
 
         const diaryText = diaryEntries.slice(-30).map(d =>
             `${d.date} | 情绪:${MOODS[d.mood] || '未知'} | ${d.text}`
@@ -1978,7 +2013,7 @@ ${reviewsInfo}
     }
 
     function deleteDiary(index) {
-        if (!confirm('确定删除这条日记？')) return;
+        if (!confirm('删除这条日记？')) return;
         diaryEntries.splice(index, 1);
         DB.set('diary', diaryEntries);
         renderDiary();
@@ -2021,7 +2056,7 @@ ${reviewsInfo}
 
     function saveDiary() {
         const text = document.getElementById('diaryText').value.trim();
-        if (!text && selectedMoodIdx === null) { alert('请至少写点什么或选择情绪'); return; }
+        if (!text && selectedMoodIdx === null) { alert('选个情绪或写几句话吧'); return; }
         const today = new Date().toISOString().split('T')[0];
         const existIdx = diaryEntries.findIndex(d => d.date === today);
         const entry = { date: today, mood: selectedMoodIdx ?? 2, text: text || '' };
@@ -2038,10 +2073,10 @@ ${reviewsInfo}
     }
 
     async function reviewAllHoldings() {
-        if (!apiKey) { alert('请先设置 API Key'); return; }
+        if (!apiKey) { alert('请先在设置中配置 API Key'); return; }
         const resultDiv = document.getElementById('reviewAllResult');
         resultDiv.style.display = 'block';
-        resultDiv.innerHTML = '<div class="card" style="text-align:center;padding:20px;"><span class="spinner"></span><div style="margin-top:8px;font-size:14px;color:var(--text-secondary);">AI 正在分析你的持仓...</div></div>';
+        resultDiv.innerHTML = '<div class="card" style="text-align:center;padding:20px;"><span class="spinner"></span><div style="margin-top:8px;font-size:14px;color:var(--text-secondary);">正在检查你的持仓健康度...</div></div>';
 
         const holdingsText = holdings.map((h, i) => {
             const days = h.date ? Math.floor((new Date() - new Date(h.date)) / 86400000) : '未知';
@@ -2107,7 +2142,7 @@ ${reviewsInfo}
     let lastBalanceQuery = 0;
     let lastBalanceResult = null;
     async function queryBalance() {
-        if (!apiKey) { alert('请先设置 API Key'); return; }
+        if (!apiKey) { alert('请先在设置中配置 API Key'); return; }
         if (lastBalanceResult && Date.now() - lastBalanceQuery < 60000) {
             document.getElementById('balanceContent').innerHTML = lastBalanceResult;
             return;
@@ -2206,16 +2241,110 @@ ${reviewsInfo}
             if (!el) continue;
             const data = await fetchPrice(h.code);
             if (data) {
-                const pnl = (data.price - h.price) * h.qty;
                 const pnlPct = ((data.price - h.price) / h.price * 100).toFixed(2);
-                const color = pnl >= 0 ? 'var(--red)' : 'var(--green)';
-                const arrow = pnl >= 0 ? '↑' : '↓';
+                const color = +pnlPct >= 0 ? 'var(--red)' : 'var(--green)';
+                const arrow = +pnlPct >= 0 ? '↑' : '↓';
+                let pnlText = `${+pnlPct >= 0 ? '+' : ''}${pnlPct}%`;
+                if (h.qty > 0) {
+                    const pnl = (data.price - h.price) * h.qty;
+                    pnlText += ` (${pnl >= 0 ? '+' : ''}${pnl.toFixed(0)}元)`;
+                }
                 el.innerHTML = `<span style="font-weight:700;font-size:15px;">${data.price.toFixed(2)}</span>
                     <span style="color:${color};font-size:13px;margin-left:4px;">${arrow}${Math.abs(data.changePct).toFixed(2)}%</span>
-                    <span style="color:${color};font-size:13px;margin-left:6px;">盈亏 ${pnl >= 0 ? '+' : ''}${pnl.toFixed(0)} (${pnlPct}%)</span>`;
+                    <span style="color:${color};font-size:13px;margin-left:6px;">浮盈 ${pnlText}</span>`;
             } else {
                 el.innerHTML = '<span style="color:var(--text-secondary);font-size:13px;">价格获取失败</span>';
             }
+        }
+    }
+
+    // ====== 决策打分 ======
+    async function scoreDecision(reviewIndex) {
+        if (!apiKey) return;
+        const r = reviews[reviewIndex];
+        if (!r || r.scores) return;
+        try {
+            const resp = await fetch('https://api.deepseek.com/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                body: JSON.stringify({
+                    model: 'deepseek-chat',
+                    messages: [
+                        { role: 'system', content: '你是交易决策评分专家。根据交易信息对决策质量打分，必须严格按JSON格式返回，不要其他文字：{"discipline":分数,"sizing":分数,"emotion":分数,"timing":分数,"total":分数,"comment":"一句话点评"}。每项1-10分。discipline=是否严格执行了止损/止盈纪律；sizing=仓位大小是否合理；emotion=是否受情绪影响决策；timing=买卖时机选择；total=综合评分。' },
+                        { role: 'user', content: `交易：${r.name}，买入${r.buyPrice}→卖出${r.sellPrice}，收益${r.rate}%，持有${r.buyDate}~${r.sellDate}，买入理由:${r.reason}，卖出理由:${r.sellReason}` }
+                    ],
+                    temperature: 0.3, max_tokens: 200
+                })
+            });
+            const data = await resp.json();
+            const text = data.choices[0].message.content;
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                const scores = JSON.parse(jsonMatch[0]);
+                reviews[reviewIndex].scores = scores;
+                DB.set('reviews', reviews);
+                renderReviews();
+            }
+        } catch(e) {}
+    }
+
+    // ====== 周报生成 ======
+    async function generateWeeklyReport() {
+        if (!apiKey) { alert('请先在设置中配置 API Key'); return; }
+        const container = document.getElementById('globalReviewResult');
+        container.style.display = 'block';
+        container.innerHTML = '<div class="card" style="text-align:center;font-size:14px;color:var(--text-secondary);padding:20px;">📊 正在生成周报...</div>';
+
+        const now = new Date();
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const weekStr = weekAgo.toISOString().split('T')[0];
+
+        const weekReviews = reviews.filter(r => r.sellDate >= weekStr);
+        const weekDiary = (DB.get('diary', [])).filter(d => d.date >= weekStr);
+        const weekProfit = weekReviews.reduce((s, r) => s + r.profit, 0).toFixed(2);
+        const weekWins = weekReviews.filter(r => r.profit > 0).length;
+        const weekTrades = weekReviews.length;
+        const avgScore = weekReviews.filter(r => r.scores).reduce((s, r) => s + r.scores.total, 0) / (weekReviews.filter(r => r.scores).length || 1);
+
+        const moodSummary = weekDiary.length > 0
+            ? weekDiary.map(d => `${d.date}:${['恐惧','焦虑','平静','乐观','贪婪'][d.mood] || '未知'}`).join('；')
+            : '本周无日记记录';
+
+        const tradesSummary = weekReviews.length > 0
+            ? weekReviews.map(r => `${r.name}(${r.rate >= 0 ? '+' : ''}${r.rate}%)`).join('、')
+            : '本周无交易';
+
+        const holdingsSummary = holdings.map(h => h.name).join('、') || '无持仓';
+
+        try {
+            const resp = await fetch('https://api.deepseek.com/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                body: JSON.stringify({
+                    model: 'deepseek-chat',
+                    messages: [
+                        { role: 'system', content: '你是投资周报撰写助手。根据用户本周交易数据、情绪记录、持仓情况，生成一份简洁的周报。包括：本周概况、做得好的地方、需要改进的地方、下周建议。用markdown格式，简洁有力，不超过300字。' },
+                        { role: 'user', content: `本周数据（${weekStr} ~ ${now.toISOString().split('T')[0]}）：\n交易${weekTrades}笔，盈亏${weekProfit}元，胜率${weekTrades > 0 ? ((weekWins/weekTrades)*100).toFixed(0) : 0}%\n交易明细：${tradesSummary}\n平均决策得分：${avgScore.toFixed(1)}/10\n情绪记录：${moodSummary}\n当前持仓：${holdingsSummary}` }
+                    ],
+                    temperature: 0.7, max_tokens: 500
+                })
+            });
+            const data = await resp.json();
+            const report = data.choices[0].message.content;
+            container.innerHTML = `<div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <span style="font-size:15px;font-weight:700;">📊 本周投资周报</span>
+                    <span style="font-size:12px;color:var(--text-secondary);">${weekStr} ~ ${now.toISOString().split('T')[0]}</span>
+                </div>
+                <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+                    <span style="font-size:13px;padding:4px 10px;border-radius:10px;background:rgba(0,122,255,0.1);color:var(--accent);">交易 ${weekTrades} 笔</span>
+                    <span style="font-size:13px;padding:4px 10px;border-radius:10px;background:${+weekProfit >= 0 ? 'rgba(255,59,48,0.1)' : 'rgba(52,199,89,0.1)'};color:${+weekProfit >= 0 ? 'var(--red)' : 'var(--green)'};">盈亏 ${+weekProfit >= 0 ? '+' : ''}${weekProfit}</span>
+                    <span style="font-size:13px;padding:4px 10px;border-radius:10px;background:rgba(88,86,214,0.1);color:#5856d6;">得分 ${avgScore.toFixed(1)}</span>
+                </div>
+                <div style="font-size:14px;line-height:1.8;color:var(--text);">${renderMarkdown(report)}</div>
+            </div>`;
+        } catch(e) {
+            container.innerHTML = '<div class="card" style="color:var(--red);font-size:14px;padding:16px;">周报生成失败，请稍后重试</div>';
         }
     }
 
