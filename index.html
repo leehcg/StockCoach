@@ -1524,8 +1524,8 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是股票消息面分析助手。请搜索并给出每只股票最近一个季度内（近3个月）的真实市场消息热点（政策、财报、行业动态、资金流向、机构评级、重大事件等），每只股票至少10条，每条标注【利好】或【利空】或【中性】。要求：1）消息必须是近3个月内的真实事件，不要编造；2）按时间倒序排列，最新的在前；3）每条消息要有具体来源或日期依据；4）重点关注对股价有实质影响的消息。输出JSON数组格式，每个元素包含stock(股票名)、news数组(每条含title消息标题、date消息日期(如5月15日)、detail详细分析该消息对股价的影响及原因(50-80字)、type值为good/bad/neutral)。只输出JSON，不要其他文字。' },
-                        { role: 'user', content: `当前日期：${now.toLocaleDateString('zh-CN')}。请给出以下股票最近一个季度的最新消息热点，按时间倒序：${names.join('、')}` }
+                        { role: 'system', content: '你是股票消息面分析助手。请给出每只股票从3个月前到今天为止的真实市场消息热点（政策、财报、行业动态、资金流向、机构评级、重大事件等），每只股票至少10条，每条标注【利好】或【利空】或【中性】。要求：1）消息必须是真实事件，不要编造；2）按时间倒序排列，最新的在前；3）每条消息要有具体日期；4）重点关注对股价有实质影响的消息；5）消息时间范围为最近3个月内，截止到今天。输出JSON数组格式，每个元素包含stock(股票名)、news数组(每条含title消息标题、date消息日期(格式如2026-05-15)、detail详细分析该消息对股价的影响及原因(50-80字)、type值为good/bad/neutral)。只输出JSON，不要其他文字。' },
+                        { role: 'user', content: `今天是${now.toLocaleDateString('zh-CN')}（${now.toLocaleTimeString('zh-CN')}）。请给出以下股票从${new Date(now.getTime() - 90 * 86400000).toLocaleDateString('zh-CN')}到今天的消息热点，按时间倒序，最新的在前：${names.join('、')}` }
                     ],
                     temperature: 0.3, max_tokens: 4000
                 })
@@ -1647,7 +1647,7 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是持仓分析助手。请结合该股票最近一个季度（近3个月）的消息面（政策、财报、行业动态、资金流向、机构评级等）分析持仓状态，给出：1）近3个月重要消息面；2）买入逻辑是否还成立；3）风险提示；4）建议操作。要求消息面基于真实事件，简洁中文。' },
+                        { role: 'system', content: '你是持仓分析助手。请结合该股票从3个月前到今天为止的真实消息面（政策、财报、行业动态、资金流向、机构评级等）分析持仓状态，给出：1）近3个月重要消息面；2）买入逻辑是否还成立；3）风险提示；4）建议操作。要求消息面基于真实事件，简洁中文。' },
                         { role: 'user', content: `当前日期：${new Date().toLocaleDateString('zh-CN')}。分析持仓：${h.name}，均价${h.price}，${h.qty}股，${fmtStop(h.stop)}，${fmtTarget(h.target)}，已持有${days}天${buysInfo}，买入理由：${h.reason}${priceInfo}` }
                     ],
                     temperature: 0.7, max_tokens: 1500
@@ -1811,7 +1811,7 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是交易复盘教练。请结合该股票最近一个季度（近3个月）的消息面（政策、财报、行业动态等），针对这笔交易做复盘分析，包括：1）近3个月关键消息面回顾；2）操作评价；3）做得好的地方；4）可改进之处；5）下次同类机会建议。简洁中文。' },
+                        { role: 'system', content: '你是交易复盘教练。请结合该股票从3个月前到今天为止的真实消息面（政策、财报、行业动态等），针对这笔交易做复盘分析，包括：1）近3个月关键消息面回顾；2）操作评价；3）做得好的地方；4）可改进之处；5）下次同类机会建议。简洁中文。' },
                         { role: 'user', content: `当前日期：${new Date().toLocaleDateString('zh-CN')}。${tradeInfo}` }
                     ],
                     temperature: 0.7, max_tokens: 1500
@@ -1861,7 +1861,7 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是一个交易复盘教练。请结合各股票最近一个季度（近3个月）的消息面（政策、财报、行业动态等），根据用户的全部交易记录和当前持仓做全局分析。\n\n请严格按以下JSON格式输出（不要输出其他内容）：\n{"score":总评分(1-100整数),"level":"评级(S/A/B/C/D)","summary":"一句话总评(20字内)","dimensions":{"discipline":"纪律性评分(1-10)","timing":"择时能力(1-10)","risk":"风控水平(1-10)","mindset":"心态管理(1-10)","learning":"学习进步(1-10)"},"analysis":"详细分析(markdown格式，包含：1)整体表现评价 2)近3个月消息面对持仓影响 3)交易习惯总结 4)是否重复犯错 5)最大问题和改进建议 6)做得好的地方)"}' },
+                        { role: 'system', content: '你是一个交易复盘教练。请结合各股票从3个月前到今天为止的真实消息面（政策、财报、行业动态等），根据用户的全部交易记录和当前持仓做全局分析。\n\n请严格按以下JSON格式输出（不要输出其他内容）：\n{"score":总评分(1-100整数),"level":"评级(S/A/B/C/D)","summary":"一句话总评(20字内)","dimensions":{"discipline":"纪律性评分(1-10)","timing":"择时能力(1-10)","risk":"风控水平(1-10)","mindset":"心态管理(1-10)","learning":"学习进步(1-10)"},"analysis":"详细分析(markdown格式，包含：1)整体表现评价 2)近3个月消息面对持仓影响 3)交易习惯总结 4)是否重复犯错 5)最大问题和改进建议 6)做得好的地方)"}' },
                         { role: 'user', content: `今日${new Date().toLocaleDateString('zh-CN')}，我的交易记录（共${reviews.length}笔，胜率${winRate}%，累计盈亏${totalProfit}元）：\n${tradesText}${holdingsContext}` }
                     ],
                     temperature: 0.7,
@@ -2243,8 +2243,8 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是市场情绪分析师。请结合今日A股/港股/美股的最新消息面，分析当前市场整体情绪。如果用户提供了实时行情数据，请直接使用该数据中的指数数值。key_events至少10条，按时间倒序。输出JSON格式（不要其他文字）：{"overall":"整体情绪(极度恐惧/恐惧/偏空/中性/偏多/乐观/极度贪婪)","score":情绪分数(0-100,0极度恐惧,100极度贪婪),"market_summary":"今日大盘表现概况(30字内)","indices":[{"name":"指数名称(如上证指数)","value":"最新点位","change":"涨跌幅(如+1.2%)","direction":"up/down/flat"}],"key_events":[{"event":"重大事件标题","date":"发生日期(如5月15日)","impact":"对市场影响(20字内)","sentiment":"positive/negative/neutral"}],"holding_sentiment":"针对用户持仓相关板块的情绪判断(如有持仓)(50字内)","suggestion":"基于当前市场情绪给投资者的心态建议(30字内)"}' },
-                        { role: 'user', content: `当前日期：${new Date().toLocaleDateString('zh-CN')}。请分析当前市场情绪。${indicesContext}${holdingsContext}` }
+                        { role: 'system', content: '你是市场情绪分析师。请结合从3个月前到今天为止的A股/港股/美股真实市场消息面，分析当前市场整体情绪。如果用户提供了实时行情数据，请直接使用该数据中的指数数值。key_events至少10条，按时间倒序，最新的在前，每条要有具体日期。输出JSON格式（不要其他文字）：{"overall":"整体情绪(极度恐惧/恐惧/偏空/中性/偏多/乐观/极度贪婪)","score":情绪分数(0-100,0极度恐惧,100极度贪婪),"market_summary":"今日大盘表现概况(30字内)","indices":[{"name":"指数名称(如上证指数)","value":"最新点位","change":"涨跌幅(如+1.2%)","direction":"up/down/flat"}],"key_events":[{"event":"重大事件标题","date":"日期(格式如2026-05-15)","impact":"对市场影响(20字内)","sentiment":"positive/negative/neutral"}],"holding_sentiment":"针对用户持仓相关板块的情绪判断(如有持仓)(50字内)","suggestion":"基于当前市场情绪给投资者的心态建议(30字内)"}' },
+                        { role: 'user', content: `今天是${new Date().toLocaleDateString('zh-CN')}（${new Date().toLocaleTimeString('zh-CN')}）。请分析当前市场情绪，消息面范围从${new Date(Date.now() - 90 * 86400000).toLocaleDateString('zh-CN')}到今天。${indicesContext}${holdingsContext}` }
                     ],
                     temperature: 0.5, max_tokens: 2000
                 })
@@ -2538,7 +2538,7 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是一个持仓回顾助手。请结合每只股票最近一个季度（近3个月）的消息面（政策、财报、行业动态、市场情绪等）逐只分析，对每只股票给出：1）近3个月关键消息面；2）买入理由现在是否还成立；3）如果有加仓记录，分析加仓决策是否合理；4）建议操作方向（继续持有/加仓/减仓/止盈/止损）。简洁中文，每只股票4-5句话。' },
+                        { role: 'system', content: '你是一个持仓回顾助手。请结合每只股票从3个月前到今天为止的真实消息面（政策、财报、行业动态、市场情绪等）逐只分析，对每只股票给出：1）近3个月关键消息面；2）买入理由现在是否还成立；3）如果有加仓记录，分析加仓决策是否合理；4）建议操作方向（继续持有/加仓/减仓/止盈/止损）。简洁中文，每只股票4-5句话。' },
                         { role: 'user', content: `请帮我回顾以下持仓（今日${new Date().toLocaleDateString('zh-CN')}）：\n${holdingsTexts.join('\n')}` }
                     ],
                     temperature: 0.7,
@@ -2777,7 +2777,7 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是投资周报撰写助手。请结合各持仓股票最近一个季度（近3个月）的消息面（政策、财报、行业动态等），根据用户本周交易数据、情绪记录、持仓情况，生成一份周报。包括：本周概况、近3个月相关消息面汇总、做得好的地方、需要改进的地方、下周操作建议。用markdown格式，简洁有力。' },
+                        { role: 'system', content: '你是投资周报撰写助手。请结合各持仓股票从3个月前到今天为止的真实消息面（政策、财报、行业动态等），根据用户本周交易数据、情绪记录、持仓情况，生成一份周报。包括：本周概况、近3个月相关消息面汇总、做得好的地方、需要改进的地方、下周操作建议。用markdown格式，简洁有力。' },
                         { role: 'user', content: `今日${now.toLocaleDateString('zh-CN')}，本周数据（${weekStr} ~ ${now.toISOString().split('T')[0]}）：\n交易${weekTrades}笔，盈亏${weekProfit}元，胜率${weekTrades > 0 ? ((weekWins/weekTrades)*100).toFixed(0) : 0}%\n交易明细：${tradesSummary}\n平均决策得分：${avgScore.toFixed(1)}/10\n情绪记录：${moodSummary}\n当前持仓：${holdingsSummary}` }
                     ],
                     temperature: 0.7, max_tokens: 1500
@@ -2832,7 +2832,7 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是股票投资教练。请结合每只股票最近一个季度（近3个月）的消息面（政策、财报、行业动态等），逐只给出今日推荐操作。格式要求：用markdown，每只股票用"### 股票名"作为标题单独一段，内容包含推荐操作（**持有/加仓/减仓/止盈/止损**加粗标注）、近3个月消息面依据、买入逻辑是否成立。最后用"### 整体提醒"给1-2句心态提醒。' },
+                        { role: 'system', content: '你是股票投资教练。请结合每只股票从3个月前到今天为止的真实消息面（政策、财报、行业动态等），逐只给出今日推荐操作。格式要求：用markdown，每只股票用"### 股票名"作为标题单独一段，内容包含推荐操作（**持有/加仓/减仓/止盈/止损**加粗标注）、近3个月消息面依据、买入逻辑是否成立。最后用"### 整体提醒"给1-2句心态提醒。' },
                         { role: 'user', content: `今天${new Date().toLocaleDateString('zh-CN')}，我的持仓：\n${holdingsDetails.join('\n')}\n\n请结合消息面给出每只股票的推荐操作。` }
                     ],
                     temperature: 0.7, max_tokens: 1500
