@@ -1337,12 +1337,61 @@ ${reviewsInfo}
         div.style.display = div.style.display === 'none' ? 'block' : 'none';
     }
 
+    let editOpHoldingIdx = -1, editOpIdx = -1;
+
     function deleteOperation(holdingIdx, opIdx) {
         if (!confirm('确定删除这条操作记录？')) return;
         const h = holdings[holdingIdx];
         if (!h.operations) return;
         h.operations.splice(opIdx, 1);
         DB.set('holdings', holdings);
+        renderHoldings();
+    }
+
+    function editOperation(holdingIdx, opIdx) {
+        const h = holdings[holdingIdx];
+        if (!h.operations) return;
+        const op = h.operations[opIdx];
+        editOpHoldingIdx = holdingIdx;
+        editOpIdx = opIdx;
+        document.getElementById('editOpDate').value = op.date || '';
+        document.getElementById('editOpType').value = op.type || 'buy';
+        document.getElementById('editOpPrice').value = op.price || '';
+        document.getElementById('editOpQty').value = op.qty || '';
+        const isSell = op.type === 'sell';
+        document.getElementById('editOpReason').value = isSell ? (op.sellReason || '') : (op.reason || '');
+        document.getElementById('editOpReasonLabel').textContent = isSell ? '卖出理由' : '买入理由';
+        openModal('editOpModal');
+    }
+
+    document.getElementById('editOpType').addEventListener('change', function() {
+        document.getElementById('editOpReasonLabel').textContent = this.value === 'sell' ? '卖出理由' : '买入理由';
+    });
+
+    function saveEditOperation() {
+        if (editOpHoldingIdx < 0 || editOpIdx < 0) return;
+        const h = holdings[editOpHoldingIdx];
+        if (!h.operations) return;
+        const op = h.operations[editOpIdx];
+        const date = document.getElementById('editOpDate').value;
+        const type = document.getElementById('editOpType').value;
+        const price = +document.getElementById('editOpPrice').value;
+        const qty = +document.getElementById('editOpQty').value;
+        const reason = document.getElementById('editOpReason').value.trim();
+        if (!price || !qty) { alert('请填写价格和数量'); return; }
+        op.date = date;
+        op.type = type;
+        op.price = price;
+        op.qty = qty;
+        if (type === 'sell') {
+            op.sellReason = reason;
+            op.profit = +(((price - h.price) * qty).toFixed(2));
+            op.rate = +((((price - h.price) / h.price) * 100).toFixed(2));
+        } else {
+            op.reason = reason;
+        }
+        DB.set('holdings', holdings);
+        closeModal('editOpModal');
         renderHoldings();
     }
 
@@ -1362,7 +1411,7 @@ ${reviewsInfo}
                 <td style="padding:4px 6px;">${op.qty}</td>
                 <td style="padding:4px 6px;color:var(--text-secondary);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(reasonHtml)}</td>
                 <td style="padding:4px 6px;">${profitHtml}</td>
-                <td style="padding:4px 6px;text-align:center;"><span onclick="deleteOperation(${holdingIdx},${j})" style="cursor:pointer;color:var(--red);font-size:14px;" title="删除">✕</span></td>
+                <td style="padding:4px 6px;text-align:center;white-space:nowrap;"><span onclick="editOperation(${holdingIdx},${j})" style="cursor:pointer;color:var(--text-secondary);font-size:13px;margin-right:6px;" title="编辑">✏️</span><span onclick="deleteOperation(${holdingIdx},${j})" style="cursor:pointer;color:var(--red);font-size:14px;" title="删除">✕</span></td>
             </tr>`;
         });
         html += '</table>';
