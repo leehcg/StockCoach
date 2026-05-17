@@ -1524,10 +1524,10 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是股票消息面分析助手。请搜索并给出每只股票最近一个季度内（近3个月）的真实市场消息热点（政策、财报、行业动态、资金流向、机构评级、重大事件等），每只股票至少10条，每条标注【利好】或【利空】或【中性】。要求：1）消息必须是近3个月内的真实事件，不要编造；2）按时间倒序排列，最新的在前；3）每条消息要有具体来源或日期依据；4）重点关注对股价有实质影响的消息。输出JSON数组格式，每个元素包含stock(股票名)、news数组(每条含title消息标题、detail详细分析该消息对股价的影响及原因(50-80字)、type值为good/bad/neutral)。只输出JSON，不要其他文字。' },
+                        { role: 'system', content: '你是股票消息面分析助手。请搜索并给出每只股票最近一个季度内（近3个月）的真实市场消息热点（政策、财报、行业动态、资金流向、机构评级、重大事件等），每只股票至少10条，每条标注【利好】或【利空】或【中性】。要求：1）消息必须是近3个月内的真实事件，不要编造；2）按时间倒序排列，最新的在前；3）每条消息要有具体来源或日期依据；4）重点关注对股价有实质影响的消息。输出JSON数组格式，每个元素包含stock(股票名)、news数组(每条含title消息标题、date消息日期(如5月15日)、detail详细分析该消息对股价的影响及原因(50-80字)、type值为good/bad/neutral)。只输出JSON，不要其他文字。' },
                         { role: 'user', content: `当前日期：${now.toLocaleDateString('zh-CN')}。请给出以下股票最近一个季度的最新消息热点，按时间倒序：${names.join('、')}` }
                     ],
-                    temperature: 0.3, max_tokens: 3000
+                    temperature: 0.3, max_tokens: 4000
                 })
             });
             const data = await resp.json();
@@ -1571,6 +1571,7 @@ ${reviewsInfo}
                         <div style="display:flex;align-items:center;gap:6px;cursor:pointer;" data-stock="${escapeHtml(h.name)}" data-title="${escapeHtml(n.title)}" data-target="${uid}" onclick="expandNewsDetail(this.dataset.stock,this.dataset.title,this.dataset.target)">
                             <span style="padding:2px 7px;border-radius:4px;background:${t.bg};color:${t.color};font-size:11px;font-weight:600;white-space:nowrap;">${t.label}</span>
                             <span style="color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(n.title)}</span>
+                            ${n.date ? `<span style="font-size:10px;color:var(--text-secondary);white-space:nowrap;">${n.date}</span>` : ''}
                             <span style="font-size:11px;color:var(--text-secondary);white-space:nowrap;">详情 ›</span>
                         </div>
                         <div id="${uid}" style="display:none;margin-top:6px;padding:10px 12px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--text);line-height:1.7;"></div>
@@ -2242,10 +2243,10 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是市场情绪分析师。请结合今日A股/港股/美股的最新消息面，分析当前市场整体情绪。如果用户提供了实时行情数据，请直接使用该数据中的指数数值。输出JSON格式（不要其他文字）：{"overall":"整体情绪(极度恐惧/恐惧/偏空/中性/偏多/乐观/极度贪婪)","score":情绪分数(0-100,0极度恐惧,100极度贪婪),"market_summary":"今日大盘表现概况(30字内)","indices":[{"name":"指数名称(如上证指数)","value":"最新点位","change":"涨跌幅(如+1.2%)","direction":"up/down/flat"}],"key_events":[{"event":"重大事件标题","impact":"对市场影响(20字内)","sentiment":"positive/negative/neutral"}],"holding_sentiment":"针对用户持仓相关板块的情绪判断(如有持仓)(50字内)","suggestion":"基于当前市场情绪给投资者的心态建议(30字内)"}' },
+                        { role: 'system', content: '你是市场情绪分析师。请结合今日A股/港股/美股的最新消息面，分析当前市场整体情绪。如果用户提供了实时行情数据，请直接使用该数据中的指数数值。key_events至少10条，按时间倒序。输出JSON格式（不要其他文字）：{"overall":"整体情绪(极度恐惧/恐惧/偏空/中性/偏多/乐观/极度贪婪)","score":情绪分数(0-100,0极度恐惧,100极度贪婪),"market_summary":"今日大盘表现概况(30字内)","indices":[{"name":"指数名称(如上证指数)","value":"最新点位","change":"涨跌幅(如+1.2%)","direction":"up/down/flat"}],"key_events":[{"event":"重大事件标题","date":"发生日期(如5月15日)","impact":"对市场影响(20字内)","sentiment":"positive/negative/neutral"}],"holding_sentiment":"针对用户持仓相关板块的情绪判断(如有持仓)(50字内)","suggestion":"基于当前市场情绪给投资者的心态建议(30字内)"}' },
                         { role: 'user', content: `当前日期：${new Date().toLocaleDateString('zh-CN')}。请分析当前市场情绪。${indicesContext}${holdingsContext}` }
                     ],
-                    temperature: 0.5, max_tokens: 1200
+                    temperature: 0.5, max_tokens: 2000
                 })
             });
             const data = await resp.json();
@@ -2308,6 +2309,7 @@ ${reviewsInfo}
                             <div style="display:flex;gap:6px;align-items:center;font-size:12px;cursor:pointer;" onclick="expandMarketEvent('${uid}','${escapeHtml(e.event).replace(/'/g, "\\'")}')">
                                 <span style="padding:1px 6px;border-radius:4px;background:${e.sentiment === 'positive' ? 'rgba(255,59,48,0.08)' : e.sentiment === 'negative' ? 'rgba(52,199,89,0.08)' : 'rgba(128,128,128,0.08)'};color:${c};font-size:11px;font-weight:600;">${label}</span>
                                 <span style="color:var(--text);flex:1;">${e.event}</span>
+                                ${e.date ? `<span style="font-size:10px;color:var(--text-secondary);white-space:nowrap;">${e.date}</span>` : ''}
                                 <span style="color:var(--accent);font-size:11px;white-space:nowrap;">详情 ›</span>
                             </div>
                             <div id="${uid}" style="display:none;margin-top:6px;padding:10px 12px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--text);line-height:1.7;"></div>
