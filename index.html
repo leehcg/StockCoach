@@ -861,6 +861,8 @@
             tab.classList.add('active');
             document.getElementById(target).classList.add('active');
             pageTitle.textContent = titles[target];
+            // 离开情绪页时清理定时器
+            if (target !== 'pageDiary' && sentimentTimer) { clearInterval(sentimentTimer); sentimentTimer = null; }
             if (target === 'pageTrain') { backToChatList(); }
             if (target === 'pageHoldings') renderHoldings();
             if (target === 'pageDiary') renderDiary();
@@ -1304,6 +1306,7 @@ ${reviewsInfo}
                     max_tokens: 300
                 })
             });
+            if (!resp.ok) throw new Error(`API请求失败(${resp.status})`);
             const data = await resp.json();
             const reply = data.choices[0].message.content;
             removeTyping();
@@ -1326,10 +1329,11 @@ ${reviewsInfo}
 
     // ====== 持仓管理 ======
     function getHoldingOps(h) {
-        if (h.operations) return h.operations;
-        // 旧数据兼容：从 buys 回填
-        if (h.buys) return h.buys.map(b => ({ type: 'buy', date: b.date, price: b.price, qty: b.qty, reason: b.reason || '' }));
-        return [{ type: 'buy', date: h.date, price: h.price, qty: h.qty, reason: h.reason }];
+        let ops;
+        if (h.operations) ops = h.operations;
+        else if (h.buys) ops = h.buys.map(b => ({ type: 'buy', date: b.date, price: b.price, qty: b.qty, reason: b.reason || '' }));
+        else ops = [{ type: 'buy', date: h.date, price: h.price, qty: h.qty, reason: h.reason }];
+        return ops.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
     }
 
     function toggleOperations(i) {
@@ -1387,8 +1391,12 @@ ${reviewsInfo}
             op.sellReason = reason;
             op.profit = +(((price - h.price) * qty).toFixed(2));
             op.rate = +((((price - h.price) / h.price) * 100).toFixed(2));
+            delete op.reason;
         } else {
             op.reason = reason;
+            delete op.sellReason;
+            delete op.profit;
+            delete op.rate;
         }
         DB.set('holdings', holdings);
         closeModal('editOpModal');
@@ -1398,12 +1406,14 @@ ${reviewsInfo}
     function renderOpsTable(ops, holdingIdx) {
         const typeLabel = { buy: '买入', add: '加仓', sell: '卖出' };
         const typeColor = { buy: '#007aff', add: '#ff9500', sell: '#ff3b30' };
+        const canEdit = holdingIdx >= 0;
         let html = '<table style="width:100%;font-size:12px;border-collapse:collapse;">';
-        html += '<tr style="color:var(--text-secondary);text-align:left;"><th style="padding:4px 6px;">日期</th><th style="padding:4px 6px;">类型</th><th style="padding:4px 6px;">价格</th><th style="padding:4px 6px;">数量</th><th style="padding:4px 6px;">理由</th><th style="padding:4px 6px;">盈亏</th><th style="padding:4px 6px;"></th></tr>';
+        html += `<tr style="color:var(--text-secondary);text-align:left;"><th style="padding:4px 6px;">日期</th><th style="padding:4px 6px;">类型</th><th style="padding:4px 6px;">价格</th><th style="padding:4px 6px;">数量</th><th style="padding:4px 6px;">理由</th><th style="padding:4px 6px;">盈亏</th>${canEdit ? '<th style="padding:4px 6px;"></th>' : ''}</tr>`;
         ops.forEach((op, j) => {
             const isSell = op.type === 'sell';
             const profitHtml = isSell ? `<span style="color:${op.rate >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:600;">${op.rate >= 0 ? '+' : ''}${op.rate}%</span>` : '-';
             const reasonHtml = isSell ? (op.sellReason || '') : (op.reason || '');
+            const editHtml = canEdit ? `<td style="padding:4px 6px;text-align:center;white-space:nowrap;"><span onclick="editOperation(${holdingIdx},${j})" style="cursor:pointer;color:var(--text-secondary);font-size:13px;margin-right:6px;" title="编辑">✏️</span><span onclick="deleteOperation(${holdingIdx},${j})" style="cursor:pointer;color:var(--red);font-size:14px;" title="删除">✕</span></td>` : '';
             html += `<tr style="border-top:1px solid var(--border);">
                 <td style="padding:4px 6px;color:var(--text-secondary);">${op.date || '-'}</td>
                 <td style="padding:4px 6px;"><span style="color:${typeColor[op.type]};font-weight:600;">${typeLabel[op.type] || op.type}</span></td>
@@ -1411,7 +1421,7 @@ ${reviewsInfo}
                 <td style="padding:4px 6px;">${op.qty}</td>
                 <td style="padding:4px 6px;color:var(--text-secondary);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(reasonHtml)}</td>
                 <td style="padding:4px 6px;">${profitHtml}</td>
-                <td style="padding:4px 6px;text-align:center;white-space:nowrap;"><span onclick="editOperation(${holdingIdx},${j})" style="cursor:pointer;color:var(--text-secondary);font-size:13px;margin-right:6px;" title="编辑">✏️</span><span onclick="deleteOperation(${holdingIdx},${j})" style="cursor:pointer;color:var(--red);font-size:14px;" title="删除">✕</span></td>
+                ${editHtml}
             </tr>`;
         });
         html += '</table>';
@@ -1472,8 +1482,53 @@ ${reviewsInfo}
             `;
         });
         html += '</div>';
+
+        // 已清仓记录
+        if (reviews.length > 0) {
+            const totalProfit = reviews.reduce((s, r) => s + r.profit, 0).toFixed(2);
+            const winRate = ((reviews.filter(r => r.profit > 0).length / reviews.length) * 100).toFixed(0);
+            html += `<div class="card" style="margin-top:12px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                    <span style="font-size:14px;font-weight:600;">📋 已清仓记录</span>
+                    <span style="font-size:12px;color:var(--text-secondary);">共${reviews.length}笔 · 胜率${winRate}% · 累计${totalProfit >= 0 ? '+' : ''}${totalProfit}元</span>
+                </div>`;
+            reviews.slice().reverse().forEach((r, ri) => {
+                const realIdx = reviews.length - 1 - ri;
+                const profitColor = r.rate >= 0 ? 'var(--green)' : 'var(--red)';
+                html += `<div class="holding-item" style="flex-direction:column;align-items:stretch;padding:10px 0;${ri > 0 ? 'border-top:1px solid var(--border);' : ''}">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <span style="font-weight:600;font-size:14px;">${escapeHtml(r.name)}</span>
+                            <span style="font-size:12px;color:var(--text-secondary);margin-left:6px;">${r.buyDate} → ${r.sellDate}</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="color:${profitColor};font-weight:600;font-size:14px;">${r.rate >= 0 ? '+' : ''}${r.rate}% · ${r.profit >= 0 ? '+' : ''}${r.profit}元</span>
+                            <span onclick="deleteReview(${realIdx})" style="cursor:pointer;color:var(--red);font-size:14px;" title="删除">✕</span>
+                        </div>
+                    </div>
+                    <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">${r.buyPrice}买入${r.qty}股 → ${r.sellPrice}卖出 · 卖出理由：${escapeHtml(r.sellReason || '未填写')}</div>
+                    ${r.operations ? `<div style="margin-top:6px;"><span onclick="toggleReviewOps(${realIdx})" style="cursor:pointer;font-size:12px;color:var(--text-secondary);">📋 操作记录 ▾</span>
+                        <div id="reviewOps_${realIdx}" style="display:none;margin-top:6px;">${renderOpsTable(r.operations, -1)}</div>
+                    </div>` : ''}
+                </div>`;
+            });
+            html += '</div>';
+        }
+
         content.innerHTML = html;
         updateHoldingPrices();
+    }
+
+    function toggleReviewOps(reviewIdx) {
+        const div = document.getElementById('reviewOps_' + reviewIdx);
+        div.style.display = div.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function deleteReview(reviewIdx) {
+        if (!confirm('确定删除这条已清仓记录？')) return;
+        reviews.splice(reviewIdx, 1);
+        DB.set('reviews', reviews);
+        renderHoldings();
     }
 
     async function toggleHoldingAI(index) {
@@ -1674,21 +1729,37 @@ ${reviewsInfo}
     }
 
     // ====== 市场情绪 ======
+    let sentimentLastLoad = 0;
+    let sentimentCache = '';
+    let sentimentTimer = null;
+    const SENTIMENT_INTERVAL = 5 * 60 * 1000; // 5分钟
+
     function renderDiary() {
         const content = document.getElementById('diaryContent');
+        const timeAgo = sentimentLastLoad ? Math.floor((Date.now() - sentimentLastLoad) / 60000) : 999;
+        const timeLabel = sentimentLastLoad ? `${timeAgo < 1 ? '刚刚' : timeAgo + '分钟前'}更新` : '';
         let html = '';
-        // 趋势图
-        html += renderMarketTrendChart();
         // 当前情绪
         html += `<div class="card" style="margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                <span style="font-size:14px;font-weight:600;">📡 市场情绪</span>
+                <span style="font-size:14px;font-weight:600;">📡 市场情绪 ${timeLabel ? '<span style="font-size:11px;color:var(--text-secondary);font-weight:400;">' + timeLabel + '</span>' : ''}</span>
                 <button class="navbar-btn" onclick="loadMarketSentiment()" style="font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:8px;">刷新</button>
             </div>
-            <div id="marketSentiment" style="font-size:13px;line-height:1.7;color:var(--text-secondary);">加载中...</div>
+            <div id="marketSentiment" style="font-size:13px;line-height:1.7;color:var(--text-secondary);">${sentimentCache || '加载中...'}</div>
         </div>`;
+        // 趋势图
+        html += renderMarketTrendChart();
         content.innerHTML = html;
-        loadMarketSentiment();
+        // 只在超过5分钟或从未加载时刷新
+        if (Date.now() - sentimentLastLoad > SENTIMENT_INTERVAL) {
+            loadMarketSentiment();
+        }
+        // 启动定时刷新（仅启动一次）
+        if (!sentimentTimer) {
+            sentimentTimer = setInterval(() => {
+                if (document.getElementById('marketSentiment')) loadMarketSentiment();
+            }, SENTIMENT_INTERVAL);
+        }
     }
 
     function renderMarketTrendChart() {
@@ -1827,7 +1898,7 @@ ${reviewsInfo}
                         trendDiv.outerHTML = trendHTML;
                     } else if (trendHTML) {
                         const sentimentCard = document.getElementById('marketSentiment')?.closest('.card');
-                        if (sentimentCard) sentimentCard.insertAdjacentHTML('beforebegin', trendHTML);
+                        if (sentimentCard) sentimentCard.insertAdjacentHTML('afterend', trendHTML);
                     }
                 }
                 const scoreColor = s.score >= 70 ? 'var(--red)' : s.score >= 40 ? 'var(--orange)' : 'var(--green)';
@@ -1873,6 +1944,8 @@ ${reviewsInfo}
             } else {
                 container.innerHTML = `<div style="font-size:13px;line-height:1.7;">${renderMarkdown(text)}</div>`;
             }
+            sentimentCache = container.innerHTML;
+            sentimentLastLoad = Date.now();
         } catch(e) {
             container.innerHTML = `<span style="color:var(--red);">分析失败：${e.message}</span>`;
         }
@@ -1888,16 +1961,17 @@ ${reviewsInfo}
 
         const holdingsTexts = await Promise.all(holdings.map(async (h, i) => {
             const days = h.date ? Math.floor((new Date() - new Date(h.date)) / 86400000) : '未知';
-            let buysInfo = '';
-            if (h.buys && h.buys.length > 1) {
-                buysInfo = `\n  加仓记录：${h.buys.map(b => `${b.date || ''}以${b.price}买入${b.qty}股${b.reason ? '(' + b.reason + ')' : ''}`).join('；')}`;
-            }
+            const ops = getHoldingOps(h);
+            const opsInfo = ops.length > 1 ? `\n  操作记录：${ops.map(op => {
+                if (op.type === 'sell') return `${op.date}卖出${op.qty}股@${op.price}(${op.sellReason || ''})`;
+                return `${op.date}${op.type === 'add' ? '加仓' : '买入'}${op.qty}股@${op.price}(${op.reason || ''})`;
+            }).join('；')}` : '';
             let priceInfo = '';
             if (h.code) {
                 const p = await fetchPrice(h.code);
                 if (p) priceInfo = `\n  实时行情：现价${p.price}(${p.changePct >= 0 ? '+' : ''}${p.changePct}%)，浮盈${((p.price - h.price) / h.price * 100).toFixed(2)}%`;
             }
-            return `${i + 1}. ${h.name}（${h.code || '无代码'}）\n  成本${h.price}×${h.qty}股，止损${fmtStop(h.stop)}，止盈${fmtTarget(h.target)}\n  持有${days}天，建仓${h.date || '未知'}\n  买入理由：${h.reason}${buysInfo}${priceInfo}`;
+            return `${i + 1}. ${h.name}（${h.code || '无代码'}）\n  成本${h.price}×${h.qty}股，止损${fmtStop(h.stop)}，止盈${fmtTarget(h.target)}\n  持有${days}天，建仓${h.date || '未知'}\n  买入理由：${h.reason}${opsInfo}${priceInfo}`;
         }));
 
         // 包含卖出记录
@@ -1918,7 +1992,7 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: `当前日期：${new Date().toLocaleDateString('zh-CN')}。你是一个专业的持仓分析师。请根据用户的当前持仓和历史卖出记录，逐只分析持仓状况。对每只股票给出：\n1）持仓状态评估（持有天数、浮盈浮亏情况）\n2）买入理由是否仍然成立\n3）如有加仓记录，评估加仓决策是否合理\n4）如有该股票的历史卖出记录，对比分析\n5）建议操作方向（**继续持有/加仓/减仓/止盈/止损**加粗标注）\n\n最后给出整体持仓建议（仓位是否集中、风险是否分散等）。简洁有力，每只股票3-5句话。` },
+                        { role: 'system', content: `当前日期：${new Date().toLocaleDateString('zh-CN')}。你是一个专业的持仓分析师。请根据用户的当前持仓操作记录和历史卖出记录，逐只分析持仓状况。对每只股票给出：\n1）持仓状态评估（持有天数、浮盈浮亏情况）\n2）操作记录分析（买入/加仓时机是否合理，卖出是否及时）\n3）买入理由是否仍然成立\n4）如有该股票的历史卖出记录，对比分析\n5）建议操作方向（**继续持有/加仓/减仓/止盈/止损**加粗标注）\n\n最后给出整体持仓建议（仓位是否集中、风险是否分散等）。简洁有力，每只股票3-5句话。` },
                         { role: 'user', content: `今日${new Date().toLocaleDateString('zh-CN')}，我的持仓：\n${holdingsTexts.join('\n')}${sellRecordsText}\n\n请逐一分析每只持仓股票的状况并给出操作建议，不要遗漏任何一只。` }
                     ],
                     temperature: 0.7,
