@@ -1336,9 +1336,13 @@ ${reviewsInfo}
         return ops.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
     }
 
+    const expandedOps = new Set();
+
     function toggleOperations(i) {
         const div = document.getElementById('holdingOps_' + i);
-        div.style.display = div.style.display === 'none' ? 'block' : 'none';
+        const showing = div.style.display === 'none';
+        div.style.display = showing ? 'block' : 'none';
+        if (showing) expandedOps.add(i); else expandedOps.delete(i);
     }
 
     let editOpHoldingIdx = -1, editOpIdx = -1;
@@ -1406,25 +1410,29 @@ ${reviewsInfo}
     function renderOpsTable(ops, holdingIdx) {
         const typeLabel = { buy: '买入', add: '加仓', sell: '卖出' };
         const typeColor = { buy: '#007aff', add: '#ff9500', sell: '#ff3b30' };
+        const typeBg = { buy: 'rgba(0,122,255,0.1)', add: 'rgba(255,149,0,0.1)', sell: 'rgba(255,59,48,0.1)' };
         const canEdit = holdingIdx >= 0;
-        let html = '<table style="width:100%;font-size:12px;border-collapse:collapse;">';
-        html += `<tr style="color:var(--text-secondary);text-align:left;"><th style="padding:4px 6px;">日期</th><th style="padding:4px 6px;">类型</th><th style="padding:4px 6px;">价格</th><th style="padding:4px 6px;">数量</th><th style="padding:4px 6px;">理由</th><th style="padding:4px 6px;">盈亏</th>${canEdit ? '<th style="padding:4px 6px;"></th>' : ''}</tr>`;
+        let html = '';
         ops.forEach((op, j) => {
             const isSell = op.type === 'sell';
-            const profitHtml = isSell ? `<span style="color:${op.rate >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:600;">${op.rate >= 0 ? '+' : ''}${op.rate}%</span>` : '-';
+            const profitHtml = isSell ? `<span style="color:${op.rate >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:600;">${op.rate >= 0 ? '+' : ''}${op.rate}%</span>` : '';
             const reasonHtml = isSell ? (op.sellReason || '') : (op.reason || '');
-            const editHtml = canEdit ? `<td style="padding:4px 6px;text-align:center;white-space:nowrap;"><span onclick="editOperation(${holdingIdx},${j})" style="cursor:pointer;color:var(--text-secondary);font-size:13px;margin-right:6px;" title="编辑">✏️</span><span onclick="deleteOperation(${holdingIdx},${j})" style="cursor:pointer;color:var(--red);font-size:14px;" title="删除">✕</span></td>` : '';
-            html += `<tr style="border-top:1px solid var(--border);">
-                <td style="padding:4px 6px;color:var(--text-secondary);">${op.date || '-'}</td>
-                <td style="padding:4px 6px;"><span style="color:${typeColor[op.type]};font-weight:600;">${typeLabel[op.type] || op.type}</span></td>
-                <td style="padding:4px 6px;">${op.price}</td>
-                <td style="padding:4px 6px;">${op.qty}</td>
-                <td style="padding:4px 6px;color:var(--text-secondary);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(reasonHtml)}</td>
-                <td style="padding:4px 6px;">${profitHtml}</td>
-                ${editHtml}
-            </tr>`;
+            const editBtns = canEdit ? `<div style="display:flex;gap:6px;margin-left:auto;">
+                <button onclick="editOperation(${holdingIdx},${j})" style="min-width:36px;min-height:32px;padding:4px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-size:13px;cursor:pointer;">✏️</button>
+                <button onclick="deleteOperation(${holdingIdx},${j})" style="min-width:36px;min-height:32px;padding:4px 8px;border:1px solid rgba(255,59,48,0.3);border-radius:8px;background:rgba(255,59,48,0.06);color:var(--red);font-size:13px;cursor:pointer;">✕</button>
+            </div>` : '';
+            html += `<div style="display:flex;align-items:center;padding:8px 0;${j > 0 ? 'border-top:1px solid var(--border);' : ''}">
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+                        <span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:600;color:${typeColor[op.type]};background:${typeBg[op.type]};">${typeLabel[op.type]}</span>
+                        <span style="font-size:12px;color:var(--text-secondary);">${op.date || '-'}</span>
+                        ${profitHtml ? `<span style="margin-left:auto;">${profitHtml}</span>` : ''}
+                    </div>
+                    <div style="font-size:13px;color:var(--text);">${op.price}元 × ${op.qty}股${reasonHtml ? ' · <span style="color:var(--text-secondary);">' + escapeHtml(reasonHtml) + '</span>' : ''}</div>
+                </div>
+                ${editBtns}
+            </div>`;
         });
-        html += '</table>';
         return html;
     }
 
@@ -1472,7 +1480,7 @@ ${reviewsInfo}
                         <button class="navbar-btn" onclick="editHolding(${i})" style="font-size:13px;">修改</button>
                         <button class="navbar-btn" onclick="deleteHolding(${i})" style="font-size:13px;color:var(--red);">删除</button>
                     </div>
-                    <div id="holdingOps_${i}" style="display:none;margin-top:10px;padding:12px;background:var(--bg);border-radius:10px;">
+                    <div id="holdingOps_${i}" style="display:${expandedOps.has(i) ? 'block' : 'none'};margin-top:10px;padding:12px;background:var(--bg);border-radius:10px;">
                         ${renderOpsTable(getHoldingOps(h), i)}
                     </div>
                     <div id="holdingAI_${i}" style="display:none;margin-top:10px;padding:12px;background:var(--bg);border-radius:10px;">
