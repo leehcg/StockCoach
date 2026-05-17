@@ -836,7 +836,29 @@
 
     // ====== 状态 ======
     let holdings = DB.get('holdings', []);
+    // 旧数据兼容：补全缺失字段
+    holdings.forEach(h => {
+        if (!h.name) h.name = '未知';
+        if (h.price == null) h.price = 0;
+        if (h.qty == null) h.qty = 0;
+        if (h.stop == null) h.stop = 0;
+        if (h.target == null) h.target = 0;
+        if (!h.reason) h.reason = '';
+        if (!h.date) h.date = '';
+        if (!h.code) h.code = '';
+        if (!h.operations) h.operations = [{ type: 'buy', date: h.date, price: h.price, qty: h.qty, reason: h.reason }];
+    });
     let reviews = DB.get('reviews', []); // kept for legacy data compatibility
+    // 旧数据兼容：补全 reviews 缺失字段
+    reviews.forEach(r => {
+        if (!r.name) r.name = '未知';
+        if (r.profit == null) r.profit = 0;
+        if (r.rate == null) r.rate = 0;
+        if (!r.buyDate) r.buyDate = '';
+        if (!r.sellDate) r.sellDate = '';
+        if (!r.sellReason) r.sellReason = '';
+        if (!r.operations) r.operations = [];
+    });
     let chatSessions = DB.get('chatSessions', []);  // [{id, title, messages, createdAt}]
     let currentSessionId = null;
     let chatHistory = [];
