@@ -1409,25 +1409,28 @@ ${reviewsInfo}
 
     // Safari 兼容：全局委托函数
     window.doAction = function(action, idx, extra) {
-        switch (action) {
-            case 'editOp': editOperation(idx, extra); break;
-            case 'deleteOp': deleteOperation(idx, extra); break;
-            case 'toggleOps': toggleOperations(idx); break;
-            case 'deleteReview': deleteReview(idx); break;
-            case 'toggleReviewOps': toggleReviewOps(idx); break;
-            case 'toggleHoldingAI': toggleHoldingAI(idx); break;
-            case 'showAddPosition': showAddPosition(idx); break;
-            case 'sellHolding': sellHolding(idx); break;
-            case 'editHolding': editHolding(idx); break;
-            case 'deleteHolding': deleteHolding(idx); break;
-            case 'showAddHolding': showAddHolding(); break;
-            case 'analyzeHoldings': analyzeHoldings(); break;
-            case 'openChat': openChat(extra); break;
-            case 'deleteChat': deleteChat(extra); break;
-            case 'loadMarketSentiment': loadMarketSentiment(); break;
-            case 'togglePreset': togglePreset(idx); break;
-            case 'removeStyleTag': removeStyleTag(idx); break;
-        }
+        try {
+            switch (action) {
+                case 'editOp': editOperation(idx, extra); break;
+                case 'deleteOp': deleteOperation(idx, extra); break;
+                case 'toggleOps': toggleOperations(idx); break;
+                case 'deleteReview': deleteReview(idx); break;
+                case 'toggleReviewOps': toggleReviewOps(idx); break;
+                case 'toggleHoldingAI': toggleHoldingAI(idx); break;
+                case 'showAddPosition': showAddPosition(idx); break;
+                case 'sellHolding': sellHolding(idx); break;
+                case 'editHolding': editHolding(idx); break;
+                case 'deleteHolding': deleteHolding(idx); break;
+                case 'showAddHolding': showAddHolding(); break;
+                case 'analyzeHoldings': analyzeHoldings(); break;
+                case 'openChat': openChat(extra); break;
+                case 'deleteChat': deleteChat(extra); break;
+                case 'loadMarketSentiment': loadMarketSentiment(); break;
+                case 'togglePreset': togglePreset(idx); break;
+                case 'removeStyleTag': removeStyleTag(idx); break;
+                default: alert('未知操作：' + action);
+            }
+        } catch(e) { alert('操作出错[' + action + ']：' + e.message); }
     };
 
     function renderOpsTable(ops, holdingIdx) {
@@ -1715,17 +1718,19 @@ ${reviewsInfo}
     // 修改持仓（弹窗）
     let editingIndex = -1;
     function editHolding(index) {
-        editingIndex = index;
-        const h = holdings[index];
-        document.getElementById('editName').value = h.name;
-        document.getElementById('editCode').value = h.code || '';
-        document.getElementById('editPrice').value = h.price;
-        document.getElementById('editQty').value = h.qty;
-        document.getElementById('editStop').value = h.stop;
-        document.getElementById('editTarget').value = h.target;
-        document.getElementById('editReason').value = h.reason;
-        document.getElementById('editDate').value = h.date || '';
-        openModal('editHoldingModal');
+        try {
+            editingIndex = index;
+            const h = holdings[index];
+            document.getElementById('editName').value = h.name;
+            document.getElementById('editCode').value = h.code || '';
+            document.getElementById('editPrice').value = h.price;
+            document.getElementById('editQty').value = h.qty;
+            document.getElementById('editStop').value = h.stop;
+            document.getElementById('editTarget').value = h.target;
+            document.getElementById('editReason').value = h.reason;
+            document.getElementById('editDate').value = h.date || '';
+            openModal('editHoldingModal');
+        } catch(e) { alert('修改出错：' + e.message); }
     }
 
     document.getElementById('editHoldingCancel').addEventListener('click', () => {
@@ -1752,11 +1757,13 @@ ${reviewsInfo}
 
     // 删除持仓
     function deleteHolding(index) {
-        const h = holdings[index];
-        if (!confirm(`删除 ${h.name}？此操作不会生成复盘记录`)) return;
-        holdings.splice(index, 1);
-        DB.set('holdings', holdings);
-        renderHoldings();
+        try {
+            const h = holdings[index];
+            if (!confirm(`删除 ${h.name}？此操作不会生成复盘记录`)) return;
+            holdings.splice(index, 1);
+            DB.set('holdings', holdings);
+            renderHoldings();
+        } catch(e) { alert('删除出错：' + e.message); }
     }
 
     // ====== 市场情绪 ======
