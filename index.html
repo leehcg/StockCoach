@@ -879,7 +879,7 @@
         const container = document.getElementById('presetStylesContainer');
         container.innerHTML = PRESET_STYLES.map((s, i) => {
             const active = selectedPresets.includes(i);
-            return `<button type="button" class="navbar-btn" onclick="togglePreset(${i})" style="font-size:13px;padding:6px 12px;border-radius:16px;border:1px solid ${active ? 'var(--accent)' : 'var(--border)'};background:${active ? 'var(--accent)' : 'transparent'};color:${active ? '#fff' : 'var(--text)'};">${s}</button>`;
+            return `<button type="button" class="navbar-btn" data-action="togglePreset" data-idx="${i}" style="font-size:13px;padding:6px 12px;border-radius:16px;border:1px solid ${active ? 'var(--accent)' : 'var(--border)'};background:${active ? 'var(--accent)' : 'transparent'};color:${active ? '#fff' : 'var(--text)'};-webkit-tap-highlight-color:transparent;">${s}</button>`;
         }).join('');
     }
 
@@ -897,7 +897,7 @@
         container.innerHTML = investStyles.map((s, i) => `
             <div style="display:flex;gap:6px;align-items:center;">
                 <input type="text" class="form-input styleTagInput" value="${escapeHtml(s)}" placeholder="如：只做低估值蓝筹" style="flex:1;margin:0;" />
-                <button class="navbar-btn" onclick="removeStyleTag(${i})" style="color:var(--red);font-size:18px;padding:4px 8px;">×</button>
+                <button class="navbar-btn" data-action="removeStyleTag" data-idx="${i}" style="color:var(--red);font-size:18px;padding:4px 8px;-webkit-tap-highlight-color:transparent;">×</button>
             </div>
         `).join('');
         document.getElementById('addStyleTag').style.display = 'none';
@@ -1057,13 +1057,13 @@
             return;
         }
         list.innerHTML = chatSessions.slice().reverse().map(s => `
-            <div class="card" style="cursor:pointer;margin-bottom:8px;" onclick="openChat('${s.id}')">
+            <div class="card" style="cursor:pointer;margin-bottom:8px;" data-action="openChat" data-id="${s.id}">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
                     <div>
                         <div style="font-size:15px;font-weight:500;">${escapeHtml(s.title)}</div>
                         <div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">${s.createdAt} · ${s.messages.length}条消息</div>
                     </div>
-                    <button class="navbar-btn" onclick="event.stopPropagation();deleteChat('${s.id}')" style="color:var(--red);font-size:13px;">删除</button>
+                    <button class="navbar-btn" data-action="deleteChat" data-id="${s.id}" style="color:var(--red);font-size:13px;-webkit-tap-highlight-color:transparent;">删除</button>
                 </div>
             </div>
         `).join('');
@@ -1407,6 +1407,34 @@ ${reviewsInfo}
         renderHoldings();
     }
 
+    // Safari 兼容：事件委托处理所有动态生成的按钮
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        const idx = +(btn.dataset.idx || 0);
+        const id = btn.dataset.id || '';
+        switch (action) {
+            case 'editOp': editOperation(idx, +(btn.dataset.oi)); break;
+            case 'deleteOp': deleteOperation(idx, +(btn.dataset.oi)); break;
+            case 'toggleOps': toggleOperations(idx); break;
+            case 'deleteReview': deleteReview(idx); break;
+            case 'toggleReviewOps': toggleReviewOps(idx); break;
+            case 'toggleHoldingAI': toggleHoldingAI(idx); break;
+            case 'showAddPosition': showAddPosition(idx); break;
+            case 'sellHolding': sellHolding(idx); break;
+            case 'editHolding': editHolding(idx); break;
+            case 'deleteHolding': deleteHolding(idx); break;
+            case 'showAddHolding': showAddHolding(); break;
+            case 'analyzeHoldings': analyzeHoldings(); break;
+            case 'openChat': openChat(id); break;
+            case 'deleteChat': e.stopPropagation(); deleteChat(id); break;
+            case 'loadMarketSentiment': loadMarketSentiment(); break;
+            case 'togglePreset': togglePreset(idx); break;
+            case 'removeStyleTag': removeStyleTag(idx); break;
+        }
+    });
+
     function renderOpsTable(ops, holdingIdx) {
         const typeLabel = { buy: '买入', add: '加仓', sell: '卖出' };
         const typeColor = { buy: '#007aff', add: '#ff9500', sell: '#ff3b30' };
@@ -1418,8 +1446,8 @@ ${reviewsInfo}
             const profitHtml = isSell ? `<span style="color:${op.rate >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:600;">${op.rate >= 0 ? '+' : ''}${op.rate}%</span>` : '';
             const reasonHtml = isSell ? (op.sellReason || '') : (op.reason || '');
             const editBtns = canEdit ? `<div style="display:flex;gap:6px;margin-left:auto;">
-                <button onclick="editOperation(${holdingIdx},${j})" style="min-width:36px;min-height:32px;padding:4px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-size:13px;cursor:pointer;">✏️</button>
-                <button onclick="deleteOperation(${holdingIdx},${j})" style="min-width:36px;min-height:32px;padding:4px 8px;border:1px solid rgba(255,59,48,0.3);border-radius:8px;background:rgba(255,59,48,0.06);color:var(--red);font-size:13px;cursor:pointer;">✕</button>
+                <button data-action="editOp" data-idx="${holdingIdx}" data-oi="${j}" style="min-width:36px;min-height:32px;padding:4px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent;">✏️</button>
+                <button data-action="deleteOp" data-idx="${holdingIdx}" data-oi="${j}" style="min-width:36px;min-height:32px;padding:4px 8px;border:1px solid rgba(255,59,48,0.3);border-radius:8px;background:rgba(255,59,48,0.06);color:var(--red);font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent;">✕</button>
             </div>` : '';
             html += `<div style="display:flex;align-items:center;padding:8px 0;${j > 0 ? 'border-top:1px solid var(--border);' : ''}">
                 <div style="flex:1;min-width:0;">
@@ -1445,14 +1473,14 @@ ${reviewsInfo}
                     <div class="empty-text">暂无持仓</div>
                     <p style="color:var(--text-secondary);font-size:14px;margin-top:8px">记录每笔交易，让每个决策都有据可查</p>
                 </div>
-                <button class="btn" onclick="showAddHolding()" style="width:100%;font-size:14px;padding:11px 0;border-radius:14px;background:var(--gradient-accent);color:#fff;box-shadow:0 2px 10px rgba(0,122,255,0.2);">+ 添加持仓</button>
+                <button class="btn" data-action="showAddHolding" style="width:100%;font-size:14px;padding:11px 0;border-radius:14px;background:var(--gradient-accent);color:#fff;box-shadow:0 2px 10px rgba(0,122,255,0.2);-webkit-tap-highlight-color:transparent;">+ 添加持仓</button>
             `;
             return;
         }
 
         let html = `<div style="display:flex;gap:10px;margin-bottom:16px;">
-            <button class="btn" style="flex:1;font-size:14px;padding:11px 0;border-radius:14px;background:var(--gradient-accent);color:#fff;box-shadow:0 2px 10px rgba(0,122,255,0.2);" onclick="showAddHolding()">+ 添加持仓</button>
-            <button class="btn" style="flex:1;font-size:14px;padding:11px 0;border-radius:14px;background:linear-gradient(135deg,#ff9500,#ff6b00);color:#fff;box-shadow:0 2px 10px rgba(255,149,0,0.2);" onclick="analyzeHoldings()">📊 持仓分析</button>
+            <button class="btn" data-action="showAddHolding" style="flex:1;font-size:14px;padding:11px 0;border-radius:14px;background:var(--gradient-accent);color:#fff;box-shadow:0 2px 10px rgba(0,122,255,0.2);-webkit-tap-highlight-color:transparent;">+ 添加持仓</button>
+            <button class="btn" data-action="analyzeHoldings" style="flex:1;font-size:14px;padding:11px 0;border-radius:14px;background:linear-gradient(135deg,#ff9500,#ff6b00);color:#fff;box-shadow:0 2px 10px rgba(255,149,0,0.2);-webkit-tap-highlight-color:transparent;">📊 持仓分析</button>
         </div>`;
         html += '<div id="holdingAnalysisResult" style="display:none;margin-bottom:12px;"></div>';
 
@@ -1473,12 +1501,12 @@ ${reviewsInfo}
                         </div>
                     </div>
                     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-                        <button class="navbar-btn" onclick="toggleHoldingAI(${i})" style="font-size:13px;" id="holdingAIBtn_${i}">📋 操作记录分析</button>
-                        <button class="navbar-btn" onclick="toggleOperations(${i})" style="font-size:13px;">📋 操作记录</button>
-                        <button class="navbar-btn" onclick="showAddPosition(${i})" style="font-size:13px;">加仓</button>
-                        <button class="navbar-btn" onclick="sellHolding(${i})" style="font-size:13px;">卖出</button>
-                        <button class="navbar-btn" onclick="editHolding(${i})" style="font-size:13px;">修改</button>
-                        <button class="navbar-btn" onclick="deleteHolding(${i})" style="font-size:13px;color:var(--red);">删除</button>
+                        <button class="navbar-btn" data-action="toggleHoldingAI" data-idx="${i}" style="font-size:13px;-webkit-tap-highlight-color:transparent;" id="holdingAIBtn_${i}">📋 操作记录分析</button>
+                        <button class="navbar-btn" data-action="toggleOps" data-idx="${i}" style="font-size:13px;-webkit-tap-highlight-color:transparent;">📋 操作记录</button>
+                        <button class="navbar-btn" data-action="showAddPosition" data-idx="${i}" style="font-size:13px;-webkit-tap-highlight-color:transparent;">加仓</button>
+                        <button class="navbar-btn" data-action="sellHolding" data-idx="${i}" style="font-size:13px;-webkit-tap-highlight-color:transparent;">卖出</button>
+                        <button class="navbar-btn" data-action="editHolding" data-idx="${i}" style="font-size:13px;-webkit-tap-highlight-color:transparent;">修改</button>
+                        <button class="navbar-btn" data-action="deleteHolding" data-idx="${i}" style="font-size:13px;color:var(--red);-webkit-tap-highlight-color:transparent;">删除</button>
                     </div>
                     <div id="holdingOps_${i}" style="display:${expandedOps.has(i) ? 'block' : 'none'};margin-top:10px;padding:12px;background:var(--bg);border-radius:10px;">
                         ${renderOpsTable(getHoldingOps(h), i)}
@@ -1511,11 +1539,11 @@ ${reviewsInfo}
                         </div>
                         <div style="display:flex;align-items:center;gap:8px;">
                             <span style="color:${profitColor};font-weight:600;font-size:14px;">${r.rate >= 0 ? '+' : ''}${r.rate}% · ${r.profit >= 0 ? '+' : ''}${r.profit}元</span>
-                            <span onclick="deleteReview(${realIdx})" style="cursor:pointer;color:var(--red);font-size:14px;" title="删除">✕</span>
+                            <span data-action="deleteReview" data-idx="${realIdx}" style="cursor:pointer;color:var(--red);font-size:14px;-webkit-tap-highlight-color:transparent;" title="删除">✕</span>
                         </div>
                     </div>
                     <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">${r.buyPrice}买入${r.qty}股 → ${r.sellPrice}卖出 · 卖出理由：${escapeHtml(r.sellReason || '未填写')}</div>
-                    ${r.operations ? `<div style="margin-top:6px;"><span onclick="toggleReviewOps(${realIdx})" style="cursor:pointer;font-size:12px;color:var(--text-secondary);">📋 操作记录 ▾</span>
+                    ${r.operations ? `<div style="margin-top:6px;"><span data-action="toggleReviewOps" data-idx="${realIdx}" style="cursor:pointer;font-size:12px;color:var(--text-secondary);-webkit-tap-highlight-color:transparent;">📋 操作记录 ▾</span>
                         <div id="reviewOps_${realIdx}" style="display:none;margin-top:6px;">${renderOpsTable(r.operations, -1)}</div>
                     </div>` : ''}
                 </div>`;
@@ -1751,7 +1779,7 @@ ${reviewsInfo}
         html += `<div class="card" style="margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
                 <span style="font-size:14px;font-weight:600;">📡 市场情绪 ${timeLabel ? '<span style="font-size:11px;color:var(--text-secondary);font-weight:400;">' + timeLabel + '</span>' : ''}</span>
-                <button class="navbar-btn" onclick="loadMarketSentiment()" style="font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:8px;">刷新</button>
+                <button class="navbar-btn" data-action="loadMarketSentiment" style="font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:8px;-webkit-tap-highlight-color:transparent;">刷新</button>
             </div>
             <div id="marketSentiment" style="font-size:13px;line-height:1.7;color:var(--text-secondary);">${sentimentCache || '加载中...'}</div>
         </div>`;
