@@ -1430,7 +1430,8 @@ ${reviewsInfo}
             </div>`;
         }
 
-        html += `<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+        html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span id="newsUpdateTime" style="font-size:11px;color:var(--text-secondary);"></span>
             <button class="navbar-btn" onclick="refreshHoldingNews()" style="font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:10px;">🔄 刷新消息面</button>
         </div>`;
         html += '<div class="card">';
@@ -1470,29 +1471,42 @@ ${reviewsInfo}
         loadHoldingNews();
     }
 
-    // ====== 持仓消息热点（1小时缓存，可手动刷新） ======
-    function refreshHoldingNews() {
+    // ====== 持仓消息热点（30分钟缓存，可手动刷新） ======
+    function getNewsCacheKey() {
         const today = new Date().toISOString().split('T')[0];
-        const hourKey = 'holdingNews_' + today + '_' + new Date().getHours();
-        localStorage.removeItem('stockcoach_' + hourKey);
+        const now = new Date();
+        const half = Math.floor(now.getMinutes() / 30) * 30;
+        return 'holdingNews_' + today + '_' + now.getHours() + '_' + half;
+    }
+    function refreshHoldingNews() {
+        const key = getNewsCacheKey();
+        localStorage.removeItem('stockcoach_' + key);
+        // 也清理其他旧缓存
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+            const k = localStorage.key(i);
+            if (k && k.startsWith('stockcoach_holdingNews_')) {
+                localStorage.removeItem(k);
+            }
+        }
         loadHoldingNews();
     }
 
     async function loadHoldingNews() {
         if (!apiKey) return;
-        const today = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
         const names = holdings.filter(h => h.name).map(h => h.name);
         if (names.length === 0) return;
 
-        const hourKey = 'holdingNews_' + today + '_' + new Date().getHours();
+        const cacheKey = getNewsCacheKey();
         // 清理过期的新闻缓存
         for (let i = localStorage.length - 1; i >= 0; i--) {
             const k = localStorage.key(i);
-            if (k && k.startsWith('stockcoach_holdingNews_') && k !== 'stockcoach_' + hourKey) {
+            if (k && k.startsWith('stockcoach_holdingNews_') && k !== 'stockcoach_' + cacheKey) {
                 localStorage.removeItem(k);
             }
         }
-        const cached = DB.get(hourKey, null);
+        const cached = DB.get(cacheKey, null);
         if (cached) {
             renderHoldingNews(cached);
             return;
@@ -1500,7 +1514,7 @@ ${reviewsInfo}
 
         holdings.forEach((h, i) => {
             const div = document.getElementById('holdingNews_' + i);
-            if (div) div.innerHTML = '<div style="font-size:12px;color:var(--text-secondary);">📰 加载消息中...</div>';
+            if (div) div.innerHTML = '<div style="font-size:12px;color:var(--text-secondary);">📰 加载最新消息中...</div>';
         });
 
         try {
@@ -1510,10 +1524,10 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是股票消息面分析助手。请为每只股票列出今日/近期最重要的10条消息热点，每条标注【利好】或【利空】或【中性】。输出JSON数组格式，每个元素包含stock(股票名)、news数组(每条含title消息标题、detail详细分析该消息对股价的影响及原因(50-80字)、type值为good/bad/neutral)。只输出JSON，不要其他文字。' },
-                        { role: 'user', content: `今日${today}，请给出以下股票的最新消息热点：${names.join('、')}` }
+                        { role: 'system', content: '你是股票消息面分析助手。请搜索并给出每只股票最近一个季度内（近3个月）的真实市场消息热点（政策、财报、行业动态、资金流向、机构评级、重大事件等），每只股票至少10条，每条标注【利好】或【利空】或【中性】。要求：1）消息必须是近3个月内的真实事件，不要编造；2）按时间倒序排列，最新的在前；3）每条消息要有具体来源或日期依据；4）重点关注对股价有实质影响的消息。输出JSON数组格式，每个元素包含stock(股票名)、news数组(每条含title消息标题、detail详细分析该消息对股价的影响及原因(50-80字)、type值为good/bad/neutral)。只输出JSON，不要其他文字。' },
+                        { role: 'user', content: `当前日期：${now.toLocaleDateString('zh-CN')}。请给出以下股票最近一个季度的最新消息热点，按时间倒序：${names.join('、')}` }
                     ],
-                    temperature: 0.5, max_tokens: 3000
+                    temperature: 0.3, max_tokens: 3000
                 })
             });
             const data = await resp.json();
@@ -1521,7 +1535,8 @@ ${reviewsInfo}
             const jsonMatch = text.match(/\[[\s\S]*\]/);
             if (jsonMatch) {
                 const newsData = JSON.parse(jsonMatch[0]);
-                DB.set(hourKey, newsData);
+                newsData._updatedAt = now.toLocaleString('zh-CN');
+                DB.set(cacheKey, newsData);
                 renderHoldingNews(newsData);
             }
         } catch(e) {
@@ -1534,6 +1549,11 @@ ${reviewsInfo}
 
     function renderHoldingNews(newsData) {
         window._holdingNewsData = newsData;
+        // 显示更新时间
+        const timeEl = document.getElementById('newsUpdateTime');
+        if (timeEl && newsData._updatedAt) {
+            timeEl.textContent = '更新于 ' + newsData._updatedAt;
+        }
         holdings.forEach((h, i) => {
             const div = document.getElementById('holdingNews_' + i);
             if (!div) return;
@@ -1584,7 +1604,7 @@ ${reviewsInfo}
                         { role: 'system', content: '你是股票消息分析师。请针对用户提供的股票消息，详细分析：1）消息来源和背景；2）具体内容和数据；3）对该股票短期/中期的影响分析；4）投资者应如何应对。要求信息详实、有数据支撑，200-300字。' },
                         { role: 'user', content: `股票：${stockName}\n消息标题：${newsTitle}\n\n请详细分析这条消息的具体内容、来龙去脉以及对股价的影响。` }
                     ],
-                    temperature: 0.7, max_tokens: 500
+                    temperature: 0.7, max_tokens: 800
                 })
             });
             const data = await resp.json();
@@ -1626,10 +1646,10 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是持仓分析助手。请结合该股票近期消息面（政策、财报、行业动态等）分析持仓状态，给出：1）近期重要消息面；2）买入逻辑是否还成立；3）风险提示；4）建议操作。简洁中文。' },
-                        { role: 'user', content: `分析持仓：${h.name}，均价${h.price}，${h.qty}股，${fmtStop(h.stop)}，${fmtTarget(h.target)}，已持有${days}天${buysInfo}，买入理由：${h.reason}${priceInfo}` }
+                        { role: 'system', content: '你是持仓分析助手。请结合该股票最近一个季度（近3个月）的消息面（政策、财报、行业动态、资金流向、机构评级等）分析持仓状态，给出：1）近3个月重要消息面；2）买入逻辑是否还成立；3）风险提示；4）建议操作。要求消息面基于真实事件，简洁中文。' },
+                        { role: 'user', content: `当前日期：${new Date().toLocaleDateString('zh-CN')}。分析持仓：${h.name}，均价${h.price}，${h.qty}股，${fmtStop(h.stop)}，${fmtTarget(h.target)}，已持有${days}天${buysInfo}，买入理由：${h.reason}${priceInfo}` }
                     ],
-                    temperature: 0.7, max_tokens: 500
+                    temperature: 0.7, max_tokens: 1500
                 })
             });
             const data = await resp.json();
@@ -1790,10 +1810,10 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是交易复盘教练。请结合该股票在持有期间的消息面（政策、财报、行业动态等），针对这笔交易做复盘分析，包括：1）持有期间关键消息面回顾；2）操作评价；3）做得好的地方；4）可改进之处；5）下次同类机会建议。简洁中文。' },
-                        { role: 'user', content: tradeInfo }
+                        { role: 'system', content: '你是交易复盘教练。请结合该股票最近一个季度（近3个月）的消息面（政策、财报、行业动态等），针对这笔交易做复盘分析，包括：1）近3个月关键消息面回顾；2）操作评价；3）做得好的地方；4）可改进之处；5）下次同类机会建议。简洁中文。' },
+                        { role: 'user', content: `当前日期：${new Date().toLocaleDateString('zh-CN')}。${tradeInfo}` }
                     ],
-                    temperature: 0.7, max_tokens: 500
+                    temperature: 0.7, max_tokens: 1500
                 })
             });
             const data = await resp.json();
@@ -1840,7 +1860,7 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是一个交易复盘教练。请结合各股票近期消息面（政策、财报、行业动态等），根据用户的全部交易记录和当前持仓做全局分析。\n\n请严格按以下JSON格式输出（不要输出其他内容）：\n{"score":总评分(1-100整数),"level":"评级(S/A/B/C/D)","summary":"一句话总评(20字内)","dimensions":{"discipline":"纪律性评分(1-10)","timing":"择时能力(1-10)","risk":"风控水平(1-10)","mindset":"心态管理(1-10)","learning":"学习进步(1-10)"},"analysis":"详细分析(markdown格式，包含：1)整体表现评价 2)近期消息面对持仓影响 3)交易习惯总结 4)是否重复犯错 5)最大问题和改进建议 6)做得好的地方)"}' },
+                        { role: 'system', content: '你是一个交易复盘教练。请结合各股票最近一个季度（近3个月）的消息面（政策、财报、行业动态等），根据用户的全部交易记录和当前持仓做全局分析。\n\n请严格按以下JSON格式输出（不要输出其他内容）：\n{"score":总评分(1-100整数),"level":"评级(S/A/B/C/D)","summary":"一句话总评(20字内)","dimensions":{"discipline":"纪律性评分(1-10)","timing":"择时能力(1-10)","risk":"风控水平(1-10)","mindset":"心态管理(1-10)","learning":"学习进步(1-10)"},"analysis":"详细分析(markdown格式，包含：1)整体表现评价 2)近3个月消息面对持仓影响 3)交易习惯总结 4)是否重复犯错 5)最大问题和改进建议 6)做得好的地方)"}' },
                         { role: 'user', content: `今日${new Date().toLocaleDateString('zh-CN')}，我的交易记录（共${reviews.length}笔，胜率${winRate}%，累计盈亏${totalProfit}元）：\n${tradesText}${holdingsContext}` }
                     ],
                     temperature: 0.7,
@@ -2080,15 +2100,9 @@ ${reviewsInfo}
         const today = new Date().toISOString().split('T')[0];
         const todayEntry = diaryEntries.find(d => d.date === today);
 
-        let html = `<div class="card" style="margin-bottom:16px;">
-            <div style="font-size:14px;font-weight:600;margin-bottom:12px;">今日记录</div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
-                ${MOODS.map((m, i) => `<button class="navbar-btn diary-mood-btn" data-mood="${i}" onclick="selectMood(${i})" style="font-size:13px;padding:6px 10px;border-radius:16px;border:1px solid ${todayEntry && todayEntry.mood === i ? 'var(--accent)' : 'var(--border)'};background:${todayEntry && todayEntry.mood === i ? 'var(--accent)' : 'transparent'};color:${todayEntry && todayEntry.mood === i ? '#fff' : 'var(--text)'};">${m}</button>`).join('')}
-            </div>
-            <textarea class="form-input" id="diaryText" rows="3" placeholder="今天做了什么决策？感受如何？">${todayEntry ? escapeHtml(todayEntry.text) : ''}</textarea>
-            <button class="btn" style="width:100%;margin-top:12px;font-size:14px;padding:11px 0;border-radius:14px;background:var(--gradient-accent);color:#fff;box-shadow:0 2px 10px rgba(0,122,255,0.2);" onclick="saveDiary()">保存今日日记</button>
-        </div>`;
+        let html = '';
 
+        // 1. 市场情绪
         html += `<div class="card" style="margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
                 <span style="font-size:14px;font-weight:600;">📡 市场情绪</span>
@@ -2098,7 +2112,7 @@ ${reviewsInfo}
         </div>`;
 
         if (diaryEntries.length > 0) {
-            // 情绪统计图
+            // 2. 情绪分布
             const moodCounts = [0, 0, 0, 0, 0];
             diaryEntries.forEach(d => { if (d.mood >= 0 && d.mood <= 4) moodCounts[d.mood]++; });
             const totalMoods = diaryEntries.length;
@@ -2122,10 +2136,25 @@ ${reviewsInfo}
             });
             html += '</div></div>';
 
+            // 3. 情绪趋势
             html += renderMoodTrendChart();
 
             html += `<button class="btn" style="width:100%;margin-bottom:16px;font-size:14px;padding:11px 0;border-radius:14px;background:linear-gradient(135deg,#ff9500,#ff6b00);color:#fff;box-shadow:0 2px 10px rgba(255,149,0,0.2);" onclick="globalDiaryReview()">🤖 情绪对比分析</button>`;
             html += '<div id="diaryReviewResult" style="display:none;margin-bottom:16px;"></div>';
+        }
+
+        // 4. 今日记录
+        html += `<div class="card" style="margin-bottom:16px;">
+            <div style="font-size:14px;font-weight:600;margin-bottom:12px;">今日记录</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+                ${MOODS.map((m, i) => { const active = todayEntry ? todayEntry.mood === i : selectedMoodIdx === i; return `<button class="navbar-btn diary-mood-btn" data-mood="${i}" onclick="selectMood(${i})" style="font-size:13px;padding:6px 10px;border-radius:16px;border:1px solid ${active ? 'var(--accent)' : 'var(--border)'};background:${active ? 'var(--accent)' : 'transparent'};color:${active ? '#fff' : 'var(--text)'};">${m}</button>`; }).join('')}
+            </div>
+            <textarea class="form-input" id="diaryText" rows="3" placeholder="今天做了什么决策？感受如何？">${todayEntry ? escapeHtml(todayEntry.text) : ''}</textarea>
+            <button class="btn" style="width:100%;margin-top:12px;font-size:14px;padding:11px 0;border-radius:14px;background:var(--gradient-accent);color:#fff;box-shadow:0 2px 10px rgba(0,122,255,0.2);" onclick="saveDiary()">保存今日日记</button>
+        </div>`;
+
+        // 5. 历史日记
+        if (diaryEntries.length > 0) {
             html += '<div style="font-size:14px;font-weight:600;margin-bottom:12px;">历史日记</div>';
             html += '<div class="card">';
             diaryEntries.slice().reverse().forEach((d, displayIdx) => {
@@ -2150,15 +2179,61 @@ ${reviewsInfo}
         loadMarketSentiment();
     }
 
+    // 获取实时指数行情（腾讯股票API，支持CORS）
+    async function fetchRealTimeIndices() {
+        const indices = [
+            { code: 'sh000001', name: '上证指数' },
+            { code: 'sz399006', name: '创业板指' },
+            { code: 'hkHSI', name: '恒生指数' },
+            { code: 'usNDX', name: '纳斯达克100' },
+            { code: 'usINX', name: '标普500' }
+        ];
+        const codeStr = indices.map(i => i.code).join(',');
+        try {
+            const resp = await fetch(`https://qt.gtimg.cn/q=${codeStr}`, { mode: 'cors' });
+            const buf = await resp.arrayBuffer();
+            const text = new TextDecoder('gbk').decode(buf);
+            const results = [];
+            indices.forEach((idx, i) => {
+                const regex = new RegExp(`v_${idx.code}="([^"]+)"`);
+                const match = text.match(regex);
+                if (!match) return;
+                const parts = match[1].split('~');
+                if (parts.length < 5) return;
+                const name = parts[1] || idx.name;
+                const price = parseFloat(parts[3]);
+                const prevClose = parseFloat(parts[4]);
+                if (isNaN(price) || isNaN(prevClose)) return;
+                const change = price - prevClose;
+                const changePct = ((change / prevClose) * 100).toFixed(2);
+                const isUp = change > 0;
+                const isDown = change < 0;
+                results.push({
+                    name: name,
+                    value: price.toFixed(2),
+                    change: (isUp ? '+' : '') + changePct + '%',
+                    direction: isUp ? 'up' : isDown ? 'down' : 'flat'
+                });
+            });
+            return results.length > 0 ? results : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
     async function loadMarketSentiment() {
         const container = document.getElementById('marketSentiment');
         if (!container) return;
         if (!apiKey) { container.innerHTML = '请先设置 API Key'; return; }
 
-        container.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px;vertical-align:middle;"></span> 分析市场情绪中...';
+        container.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px;vertical-align:middle;"></span> 获取实时行情 & 分析市场情绪中...';
+
+        // 先获取实时指数行情
+        const realTimeIndices = await fetchRealTimeIndices();
 
         const stockNames = holdings.map(h => h.name).filter(Boolean);
         const holdingsContext = stockNames.length > 0 ? `\n用户持仓股票：${stockNames.join('、')}` : '';
+        const indicesContext = realTimeIndices ? `\n\n以下是实时行情数据供参考：\n${realTimeIndices.map(idx => `${idx.name}: ${idx.value} (${idx.change})`).join('\n')}` : '';
 
         try {
             const resp = await fetch('https://api.deepseek.com/chat/completions', {
@@ -2167,10 +2242,10 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是市场情绪分析师。请结合今日A股/港股/美股的消息面，分析当前市场整体情绪。输出JSON格式（不要其他文字）：{"overall":"整体情绪(极度恐惧/恐惧/偏空/中性/偏多/乐观/极度贪婪)","score":情绪分数(0-100,0极度恐惧,100极度贪婪),"market_summary":"今日大盘表现概况(30字内)","key_events":[{"event":"重大事件标题","impact":"对市场影响(20字内)","sentiment":"positive/negative/neutral"}],"holding_sentiment":"针对用户持仓相关板块的情绪判断(如有持仓)(50字内)","suggestion":"基于当前市场情绪给投资者的心态建议(30字内)"}' },
-                        { role: 'user', content: `今日${new Date().toLocaleDateString('zh-CN')}，请分析当前市场情绪。${holdingsContext}` }
+                        { role: 'system', content: '你是市场情绪分析师。请结合今日A股/港股/美股的最新消息面，分析当前市场整体情绪。如果用户提供了实时行情数据，请直接使用该数据中的指数数值。输出JSON格式（不要其他文字）：{"overall":"整体情绪(极度恐惧/恐惧/偏空/中性/偏多/乐观/极度贪婪)","score":情绪分数(0-100,0极度恐惧,100极度贪婪),"market_summary":"今日大盘表现概况(30字内)","indices":[{"name":"指数名称(如上证指数)","value":"最新点位","change":"涨跌幅(如+1.2%)","direction":"up/down/flat"}],"key_events":[{"event":"重大事件标题","impact":"对市场影响(20字内)","sentiment":"positive/negative/neutral"}],"holding_sentiment":"针对用户持仓相关板块的情绪判断(如有持仓)(50字内)","suggestion":"基于当前市场情绪给投资者的心态建议(30字内)"}' },
+                        { role: 'user', content: `当前日期：${new Date().toLocaleDateString('zh-CN')}。请分析当前市场情绪。${indicesContext}${holdingsContext}` }
                     ],
-                    temperature: 0.5, max_tokens: 800
+                    temperature: 0.5, max_tokens: 1200
                 })
             });
             const data = await resp.json();
@@ -2190,6 +2265,29 @@ ${reviewsInfo}
                 }
                 const scoreColor = s.score >= 70 ? 'var(--red)' : s.score >= 40 ? 'var(--orange)' : 'var(--green)';
                 const barColor = s.score >= 70 ? 'linear-gradient(90deg,#ff9500,#ff3b30)' : s.score >= 40 ? 'linear-gradient(90deg,#34c759,#ff9500)' : 'linear-gradient(90deg,#007aff,#34c759)';
+                // 指数卡片HTML（优先使用实时行情数据）
+                const displayIndices = (realTimeIndices && realTimeIndices.length > 0) ? realTimeIndices : (s.indices || []);
+                const isRealTime = realTimeIndices && realTimeIndices.length > 0;
+                let indicesHtml = '';
+                if (displayIndices.length > 0) {
+                    indicesHtml = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+                        ${displayIndices.map(idx => {
+                            const isUp = idx.direction === 'up' || (idx.change && idx.change.startsWith('+'));
+                            const isDown = idx.direction === 'down' || (idx.change && idx.change.startsWith('-'));
+                            const color = isUp ? 'var(--red)' : isDown ? 'var(--green)' : 'var(--text-secondary)';
+                            const bg = isUp ? 'rgba(255,59,48,0.06)' : isDown ? 'rgba(52,199,89,0.06)' : 'rgba(128,128,128,0.06)';
+                            const arrow = isUp ? '▲' : isDown ? '▼' : '—';
+                            return `<div style="flex:1;min-width:90px;padding:8px 6px;background:${bg};border-radius:8px;text-align:center;">
+                                <div style="font-size:11px;color:var(--text-secondary);margin-bottom:2px;">${escapeHtml(idx.name)}</div>
+                                <div style="font-size:14px;font-weight:700;color:${color};">${escapeHtml(idx.value)}</div>
+                                <div style="font-size:11px;font-weight:600;color:${color};">${arrow} ${escapeHtml(idx.change)}</div>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                    <div style="text-align:right;margin-bottom:6px;">
+                        <span style="font-size:10px;color:var(--text-secondary);">${isRealTime ? '🟢 实时行情 · ' + new Date().toLocaleTimeString('zh-CN') : '⚠️ AI估算数据'}</span>
+                    </div>`;
+                }
                 container.innerHTML = `
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
                         <div style="font-size:28px;font-weight:800;color:${scoreColor};line-height:1;">${s.score}</div>
@@ -2200,6 +2298,7 @@ ${reviewsInfo}
                             </div>
                         </div>
                     </div>
+                    ${indicesHtml}
                     <div style="font-size:13px;color:var(--text);margin-bottom:8px;">${s.market_summary || ''}</div>
                     ${s.key_events && s.key_events.length > 0 ? `<div style="margin-bottom:8px;">${s.key_events.map((e, idx) => {
                         const c = e.sentiment === 'positive' ? 'var(--red)' : e.sentiment === 'negative' ? 'var(--green)' : 'var(--text-secondary)';
@@ -2260,7 +2359,7 @@ ${reviewsInfo}
         }
     }
 
-    let selectedMoodIdx = null;
+    let selectedMoodIdx = 2; // 默认平静
     function selectMood(idx) {
         selectedMoodIdx = idx;
         document.querySelectorAll('.diary-mood-btn').forEach((btn, i) => {
@@ -2437,11 +2536,11 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是一个持仓回顾助手。请结合每只股票的近期消息面（政策、财报、行业动态、市场情绪等）逐只分析，对每只股票给出：1）近期关键消息面；2）买入理由现在是否还成立；3）如果有加仓记录，分析加仓决策是否合理；4）建议操作方向（继续持有/加仓/减仓/止盈/止损）。简洁中文，每只股票4-5句话。' },
+                        { role: 'system', content: '你是一个持仓回顾助手。请结合每只股票最近一个季度（近3个月）的消息面（政策、财报、行业动态、市场情绪等）逐只分析，对每只股票给出：1）近3个月关键消息面；2）买入理由现在是否还成立；3）如果有加仓记录，分析加仓决策是否合理；4）建议操作方向（继续持有/加仓/减仓/止盈/止损）。简洁中文，每只股票4-5句话。' },
                         { role: 'user', content: `请帮我回顾以下持仓（今日${new Date().toLocaleDateString('zh-CN')}）：\n${holdingsTexts.join('\n')}` }
                     ],
                     temperature: 0.7,
-                    max_tokens: 800
+                    max_tokens: 1500
                 })
             });
             const data = await resp.json();
@@ -2676,10 +2775,10 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是投资周报撰写助手。请结合各持仓股票近期消息面（政策、财报、行业动态等），根据用户本周交易数据、情绪记录、持仓情况，生成一份周报。包括：本周概况、相关消息面汇总、做得好的地方、需要改进的地方、下周操作建议。用markdown格式，简洁有力。' },
+                        { role: 'system', content: '你是投资周报撰写助手。请结合各持仓股票最近一个季度（近3个月）的消息面（政策、财报、行业动态等），根据用户本周交易数据、情绪记录、持仓情况，生成一份周报。包括：本周概况、近3个月相关消息面汇总、做得好的地方、需要改进的地方、下周操作建议。用markdown格式，简洁有力。' },
                         { role: 'user', content: `今日${now.toLocaleDateString('zh-CN')}，本周数据（${weekStr} ~ ${now.toISOString().split('T')[0]}）：\n交易${weekTrades}笔，盈亏${weekProfit}元，胜率${weekTrades > 0 ? ((weekWins/weekTrades)*100).toFixed(0) : 0}%\n交易明细：${tradesSummary}\n平均决策得分：${avgScore.toFixed(1)}/10\n情绪记录：${moodSummary}\n当前持仓：${holdingsSummary}` }
                     ],
-                    temperature: 0.7, max_tokens: 700
+                    temperature: 0.7, max_tokens: 1500
                 })
             });
             const data = await resp.json();
@@ -2731,10 +2830,10 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是股票投资教练。请结合每只股票近期消息面（政策、财报、行业动态等），逐只给出今日推荐操作。格式要求：用markdown，每只股票用"### 股票名"作为标题单独一段，内容包含推荐操作（**持有/加仓/减仓/止盈/止损**加粗标注）、消息面依据、买入逻辑是否成立。最后用"### 整体提醒"给1-2句心态提醒。' },
+                        { role: 'system', content: '你是股票投资教练。请结合每只股票最近一个季度（近3个月）的消息面（政策、财报、行业动态等），逐只给出今日推荐操作。格式要求：用markdown，每只股票用"### 股票名"作为标题单独一段，内容包含推荐操作（**持有/加仓/减仓/止盈/止损**加粗标注）、近3个月消息面依据、买入逻辑是否成立。最后用"### 整体提醒"给1-2句心态提醒。' },
                         { role: 'user', content: `今天${new Date().toLocaleDateString('zh-CN')}，我的持仓：\n${holdingsDetails.join('\n')}\n\n请结合消息面给出每只股票的推荐操作。` }
                     ],
-                    temperature: 0.7, max_tokens: 600
+                    temperature: 0.7, max_tokens: 1500
                 })
             });
             const data = await resp.json();
