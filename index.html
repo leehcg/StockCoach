@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="决策陪练">
@@ -424,6 +424,70 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        /* ====== 移动端优化 ====== */
+        @media (max-width: 480px) {
+            body { padding-bottom: 72px; -webkit-tap-highlight-color: transparent; }
+            .page { padding: 14px; }
+            .navbar { padding: 12px 16px; }
+            .navbar h1 { font-size: 18px; }
+            .tab-bar { padding: 6px 8px 16px; }
+            .tab-item { padding: 8px 14px; font-size: 10px; }
+            .tab-item .tab-icon { font-size: 20px; }
+            .card { padding: 14px; margin-bottom: 10px; border-radius: 14px; }
+            .btn { padding: 12px 18px; font-size: 14px; min-height: 44px; }
+            .navbar-btn { padding: 8px 14px !important; font-size: 13px !important; min-height: 36px; border-radius: 10px !important; }
+            .form-input, select { padding: 13px 14px; font-size: 16px !important; min-height: 44px; }
+            .chat-input { padding: 12px 16px; font-size: 16px !important; min-height: 44px; }
+            .chat-send { width: 44px; height: 44px; font-size: 20px; }
+            .modal { padding: 22px 18px; border-radius: 16px; max-height: calc(100vh - 40px); }
+            .modal h2 { font-size: 17px; margin-bottom: 14px; }
+            .modal-overlay { padding: 12px; }
+            .holding-item { padding: 12px 0; }
+            .holding-name { font-size: 15px; }
+            .holding-meta { font-size: 12px; }
+            .holding-reason { max-width: none; font-size: 12px; white-space: normal !important; }
+            .log-item { padding: 12px 0; }
+            .log-detail { font-size: 13px; }
+            .stats-grid { gap: 8px; }
+            .stat-item { padding: 12px 8px; border-radius: 12px; }
+            .stat-value { font-size: 18px; }
+            .stat-label { font-size: 11px; }
+            .bubble { max-width: 90%; padding: 10px 14px; font-size: 14px; }
+            .empty-state { padding: 40px 16px; }
+            .chat-input-area { gap: 6px; }
+            .modal-actions { flex-direction: column; }
+            .modal-actions .btn { width: 100%; }
+        }
+
+        @media (max-width: 380px) {
+            .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+            .stat-item { padding: 10px 6px; }
+            .stat-value { font-size: 16px; }
+        }
+
+        /* 弹窗打开时禁止背景滚动 */
+        body.modal-open { overflow: hidden; position: fixed; width: 100%; }
+
+        /* iPhone Safari 专项优化 */
+        @supports (-webkit-touch-callout: none) {
+            body {
+                padding-bottom: calc(72px + env(safe-area-inset-bottom));
+                -webkit-overflow-scrolling: touch;
+            }
+            .tab-bar {
+                padding-bottom: max(16px, env(safe-area-inset-bottom));
+            }
+            .navbar {
+                padding-top: max(12px, env(safe-area-inset-top));
+            }
+            .modal {
+                max-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 40px);
+            }
+            .form-input, .chat-input, select, textarea {
+                font-size: 16px !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -665,7 +729,7 @@
                 <textarea class="form-input" id="addPosReason" rows="2" placeholder="加仓的逻辑依据？"></textarea>
             </div>
             <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="document.getElementById('addPositionModal').classList.remove('show')">取消</button>
+                <button class="btn btn-secondary" onclick="closeModal('addPositionModal')">取消</button>
                 <button class="btn btn-primary" onclick="saveAddPosition()">确认加仓</button>
             </div>
         </div>
@@ -751,7 +815,7 @@
                 <input type="date" class="form-input" id="editReviewSellDate" />
             </div>
             <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="document.getElementById('editReviewModal').classList.remove('show')">取消</button>
+                <button class="btn btn-secondary" onclick="closeModal('editReviewModal')">取消</button>
                 <button class="btn btn-primary" onclick="saveEditReview()">保存修改</button>
             </div>
         </div>
@@ -774,7 +838,7 @@
                 <textarea class="form-input" id="editDiaryText" rows="3"></textarea>
             </div>
             <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="document.getElementById('editDiaryModal').classList.remove('show')">取消</button>
+                <button class="btn btn-secondary" onclick="closeModal('editDiaryModal')">取消</button>
                 <button class="btn btn-primary" onclick="saveEditDiary()">保存修改</button>
             </div>
         </div>
@@ -792,6 +856,21 @@
         }
     };
 
+    // ====== Safari 弹窗滚动穿透修复 ======
+    let scrollPos = 0;
+    function openModal(id) {
+        scrollPos = window.pageYOffset;
+        document.body.classList.add('modal-open');
+        document.body.style.top = -scrollPos + 'px';
+        document.getElementById(id).classList.add('show');
+    }
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('show');
+        document.body.classList.remove('modal-open');
+        document.body.style.top = '';
+        window.scrollTo(0, scrollPos);
+    }
+
     // ====== 状态 ======
     let holdings = DB.get('holdings', []);
     let reviews = DB.get('reviews', []);
@@ -802,6 +881,8 @@
     const PRESET_STYLES = ['保守型 - 稳健为主，低波动', '均衡型 - 兼顾收益与风险', '进取型 - 追求高收益，能承受波动'];
     let selectedPresets = DB.get('selectedPresets', [1]); // 默认选中"均衡型"
     let investStyles = DB.get('investStyles', []);
+    function fmtStop(v) { return +v === 0 ? '不止损' : '止损' + v; }
+    function fmtTarget(v) { return +v === 0 ? '不止盈' : '目标' + v; }
 
     // ====== Tab切换 ======
     const tabs = document.querySelectorAll('.tab-item');
@@ -881,12 +962,12 @@
         settingsApiKey.value = apiKey;
         renderPresetStyles();
         renderStyleTags();
-        settingsModal.classList.add('show');
+        openModal('settingsModal');
     });
     document.getElementById('settingsCancel').addEventListener('click', () => {
         selectedPresets = savedPresets;
         investStyles = savedStyles;
-        settingsModal.classList.remove('show');
+        closeModal('settingsModal');
     });
     document.getElementById('settingsSave').addEventListener('click', () => {
         apiKey = settingsApiKey.value.trim();
@@ -895,7 +976,7 @@
         DB.set('apiKey', apiKey);
         DB.set('investStyles', investStyles);
         DB.set('selectedPresets', selectedPresets);
-        settingsModal.classList.remove('show');
+        closeModal('settingsModal');
         const toast = document.createElement('div');
         toast.textContent = '✓ 设置已保存';
         toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;font-weight:600;z-index:999;animation:modalIn 0.3s ease;';
@@ -953,7 +1034,7 @@
         document.getElementById('addPosQty').value = '';
         document.getElementById('addPosReason').value = '';
         document.getElementById('addPosCalcResult').style.display = 'none';
-        document.getElementById('addPositionModal').classList.add('show');
+        openModal('addPositionModal');
     }
 
     function calcAddPosition() {
@@ -989,7 +1070,7 @@
         h.buys.push({ price, qty, date: new Date().toISOString().split('T')[0], reason });
 
         DB.set('holdings', holdings);
-        document.getElementById('addPositionModal').classList.remove('show');
+        closeModal('addPositionModal');
         renderHoldings();
     }
 
@@ -1204,7 +1285,7 @@
         let holdingsInfo = '';
         if (holdings.length > 0) {
             holdingsInfo = '\n\n当前持仓：\n' + holdings.map(h =>
-                `- ${h.name}：买入价${h.price}，${h.qty}股，止损${h.stop}，目标${h.target}，理由：${h.reason}，日期：${h.date || '未知'}`
+                `- ${h.name}：买入价${h.price}，${h.qty}股，${fmtStop(h.stop)}，${fmtTarget(h.target)}，理由：${h.reason}，日期：${h.date || '未知'}`
             ).join('\n');
         }
 
@@ -1305,6 +1386,9 @@ ${reviewsInfo}
             </div>`;
         }
 
+        html += `<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+            <button class="navbar-btn" onclick="refreshHoldingNews()" style="font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:10px;">🔄 刷新消息面</button>
+        </div>`;
         html += '<div class="card">';
         holdings.forEach((h, i) => {
             html += `
@@ -1315,12 +1399,13 @@ ${reviewsInfo}
                             <div id="livePrice_${i}" style="margin:4px 0;">${h.code ? '<span style="font-size:13px;color:var(--text-secondary);">加载中...</span>' : ''}</div>
                             <div class="holding-meta">
                                 ${h.qty}股 × ${h.price}${h.buys && h.buys.length > 1 ? ' (均)' : ''}
-                                <span class="tag tag-stop">止损 ${h.stop}</span>
-                                <span class="tag tag-target">目标 ${h.target}</span>
+                                <span class="tag tag-stop">${+h.stop === 0 ? '不止损' : '止损 ' + h.stop}</span>
+                                <span class="tag tag-target">${+h.target === 0 ? '不止盈' : '目标 ' + h.target}</span>
                             </div>
                             <div class="holding-reason">${escapeHtml(h.reason)}</div>
                         </div>
                     </div>
+                    <div id="holdingNews_${i}" style="margin-top:8px;"></div>
                     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
                         <button class="navbar-btn" onclick="toggleHoldingAI(${i})" style="font-size:13px;" id="holdingAIBtn_${i}">🤖 AI分析</button>
                         <button class="navbar-btn" onclick="showAddPosition(${i})" style="font-size:13px;">加仓</button>
@@ -1328,12 +1413,8 @@ ${reviewsInfo}
                         <button class="navbar-btn" onclick="editHolding(${i})" style="font-size:13px;">修改</button>
                         <button class="navbar-btn" onclick="deleteHolding(${i})" style="font-size:13px;color:var(--red);">删除</button>
                     </div>
-                    <div id="holdingAI_${i}" style="display:none;margin-top:10px;padding:12px;background:var(--bg);border-radius:8px;">
-                        <div id="holdingAIChat_${i}" style="max-height:300px;overflow-y:auto;font-size:14px;line-height:1.6;"></div>
-                        <div style="display:flex;gap:8px;margin-top:10px;">
-                            <input type="text" class="form-input" id="holdingAIInput_${i}" placeholder="继续追问..." style="flex:1;margin:0;font-size:14px;" onkeydown="if(event.key==='Enter')sendHoldingAI(${i})" />
-                            <button class="btn btn-primary" onclick="sendHoldingAI(${i})" style="white-space:nowrap;font-size:13px;padding:6px 12px;">发送</button>
-                        </div>
+                    <div id="holdingAI_${i}" style="display:none;margin-top:10px;padding:12px;background:var(--bg);border-radius:10px;">
+                        <div id="holdingAIChat_${i}" style="font-size:14px;line-height:1.7;"></div>
                     </div>
                 </div>
             `;
@@ -1342,95 +1423,177 @@ ${reviewsInfo}
         content.innerHTML = html;
         updateHoldingPrices();
         getDailySuggestion();
+        loadHoldingNews();
     }
 
-    const holdingAIMsgs = DB.get('holdingAIMsgs', {});
+    // ====== 持仓消息热点（1小时缓存，可手动刷新） ======
+    function refreshHoldingNews() {
+        const today = new Date().toISOString().split('T')[0];
+        const hourKey = 'holdingNews_' + today + '_' + new Date().getHours();
+        localStorage.removeItem('stockcoach_' + hourKey);
+        loadHoldingNews();
+    }
+
+    async function loadHoldingNews() {
+        if (!apiKey) return;
+        const today = new Date().toISOString().split('T')[0];
+        const names = holdings.filter(h => h.name).map(h => h.name);
+        if (names.length === 0) return;
+
+        const hourKey = 'holdingNews_' + today + '_' + new Date().getHours();
+        const cached = DB.get(hourKey, null);
+        if (cached) {
+            renderHoldingNews(cached);
+            return;
+        }
+
+        holdings.forEach((h, i) => {
+            const div = document.getElementById('holdingNews_' + i);
+            if (div) div.innerHTML = '<div style="font-size:12px;color:var(--text-secondary);">📰 加载消息中...</div>';
+        });
+
+        try {
+            const resp = await fetch('https://api.deepseek.com/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                body: JSON.stringify({
+                    model: 'deepseek-chat',
+                    messages: [
+                        { role: 'system', content: '你是股票消息面分析助手。请为每只股票列出今日/近期最重要的10条消息热点，每条标注【利好】或【利空】或【中性】。输出JSON数组格式，每个元素包含stock(股票名)、news数组(每条含title消息标题、detail详细分析该消息对股价的影响及原因(50-80字)、type值为good/bad/neutral)。只输出JSON，不要其他文字。' },
+                        { role: 'user', content: `今日${today}，请给出以下股票的最新消息热点：${names.join('、')}` }
+                    ],
+                    temperature: 0.5, max_tokens: 3000
+                })
+            });
+            const data = await resp.json();
+            const text = data.choices[0].message.content;
+            const jsonMatch = text.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+                const newsData = JSON.parse(jsonMatch[0]);
+                DB.set(hourKey, newsData);
+                renderHoldingNews(newsData);
+            }
+        } catch(e) {
+            holdings.forEach((h, i) => {
+                const div = document.getElementById('holdingNews_' + i);
+                if (div) div.innerHTML = '';
+            });
+        }
+    }
+
+    function renderHoldingNews(newsData) {
+        window._holdingNewsData = newsData;
+        holdings.forEach((h, i) => {
+            const div = document.getElementById('holdingNews_' + i);
+            if (!div) return;
+            const stockNews = newsData.find(n => n.stock === h.name || h.name.includes(n.stock) || n.stock.includes(h.name));
+            if (!stockNews || !stockNews.news || stockNews.news.length === 0) {
+                div.innerHTML = '';
+                return;
+            }
+            const typeMap = { good: { label: '利好', color: 'var(--red)', bg: 'rgba(255,59,48,0.08)' }, bad: { label: '利空', color: 'var(--green)', bg: 'rgba(52,199,89,0.08)' }, neutral: { label: '中性', color: 'var(--text-secondary)', bg: 'rgba(128,128,128,0.08)' } };
+            div.innerHTML = `<div style="margin-top:6px;">
+                ${stockNews.news.slice(0, 10).map((n, j) => {
+                    const t = typeMap[n.type] || typeMap.neutral;
+                    const uid = `news_${i}_${j}`;
+                    return `<div style="padding:4px 0;font-size:12px;">
+                        <div style="display:flex;align-items:center;gap:6px;cursor:pointer;" data-stock="${escapeHtml(h.name)}" data-title="${escapeHtml(n.title)}" data-target="${uid}" onclick="expandNewsDetail(this.dataset.stock,this.dataset.title,this.dataset.target)">
+                            <span style="padding:2px 7px;border-radius:4px;background:${t.bg};color:${t.color};font-size:11px;font-weight:600;white-space:nowrap;">${t.label}</span>
+                            <span style="color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(n.title)}</span>
+                            <span style="font-size:11px;color:var(--text-secondary);white-space:nowrap;">详情 ›</span>
+                        </div>
+                        <div id="${uid}" style="display:none;margin-top:6px;padding:10px 12px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--text);line-height:1.7;"></div>
+                    </div>`;
+                }).join('')}
+            </div>`;
+        });
+    }
+
+    async function expandNewsDetail(stockName, newsTitle, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        if (container.style.display !== 'none') {
+            container.style.display = 'none';
+            return;
+        }
+        container.style.display = 'block';
+        if (container.dataset.loaded === 'true') return;
+
+        container.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px;"></span> AI 查询详细信息中...';
+
+        if (!apiKey) { container.innerHTML = '请先设置 API Key'; return; }
+
+        try {
+            const resp = await fetch('https://api.deepseek.com/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                body: JSON.stringify({
+                    model: 'deepseek-chat',
+                    messages: [
+                        { role: 'system', content: '你是股票消息分析师。请针对用户提供的股票消息，详细分析：1）消息来源和背景；2）具体内容和数据；3）对该股票短期/中期的影响分析；4）投资者应如何应对。要求信息详实、有数据支撑，200-300字。' },
+                        { role: 'user', content: `股票：${stockName}\n消息标题：${newsTitle}\n\n请详细分析这条消息的具体内容、来龙去脉以及对股价的影响。` }
+                    ],
+                    temperature: 0.7, max_tokens: 500
+                })
+            });
+            const data = await resp.json();
+            container.innerHTML = renderMarkdown(data.choices[0].message.content);
+            container.dataset.loaded = 'true';
+        } catch(e) {
+            container.innerHTML = `<span style="color:var(--red);">查询失败：${e.message}</span>`;
+        }
+    }
+
 
     async function toggleHoldingAI(index) {
         const div = document.getElementById('holdingAI_' + index);
-        if (div.style.display !== 'none') {
-            div.style.display = 'none';
-            return;
-        }
+        if (div.style.display !== 'none') { div.style.display = 'none'; return; }
         div.style.display = 'block';
-
-        if (holdingAIMsgs[index]) {
-            renderHoldingAIChat(index);
-            return;
-        }
-
-        if (!apiKey) {
-            document.getElementById('holdingAIChat_' + index).innerHTML = '<div style="color:var(--text-secondary);">请先设置 API Key</div>';
-            return;
-        }
-
-        const h = holdings[index];
-        holdingAIMsgs[index] = [
-            { role: 'system', content: '你是持仓分析助手。针对用户的持仓进行分析和讨论。简洁中文回答，用户可能会追问细节。' },
-            { role: 'user', content: `请分析这笔持仓：股票:${h.name}, 买入价:${h.price}, 数量:${h.qty}股, 止损:${h.stop}, 目标:${h.target}, 买入理由:${h.reason}, 买入日期:${h.date || '未知'}` }
-        ];
-        renderHoldingAIChat(index);
-
-        try {
-            const resp = await fetch('https://api.deepseek.com/chat/completions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-                body: JSON.stringify({ model: 'deepseek-chat', messages: holdingAIMsgs[index], temperature: 0.7, max_tokens: 400 })
-            });
-            const data = await resp.json();
-            const reply = data.choices[0].message.content;
-            holdingAIMsgs[index].push({ role: 'assistant', content: reply });
-            DB.set('holdingAIMsgs', holdingAIMsgs);
-            renderHoldingAIChat(index);
-        } catch (e) {
-            document.getElementById('holdingAIChat_' + index).innerHTML += `<div style="color:var(--red);font-size:14px;">分析失败：${e.message}</div>`;
-        }
-    }
-
-    async function sendHoldingAI(index) {
-        const input = document.getElementById('holdingAIInput_' + index);
-        const text = input.value.trim();
-        if (!text || !apiKey) return;
-        input.value = '';
-
-        holdingAIMsgs[index].push({ role: 'user', content: text });
-        DB.set('holdingAIMsgs', holdingAIMsgs);
-        renderHoldingAIChat(index);
-
-        try {
-            const resp = await fetch('https://api.deepseek.com/chat/completions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-                body: JSON.stringify({ model: 'deepseek-chat', messages: holdingAIMsgs[index], temperature: 0.7, max_tokens: 400 })
-            });
-            const data = await resp.json();
-            const reply = data.choices[0].message.content;
-            holdingAIMsgs[index].push({ role: 'assistant', content: reply });
-            DB.set('holdingAIMsgs', holdingAIMsgs);
-            renderHoldingAIChat(index);
-        } catch (e) {
-            document.getElementById('holdingAIChat_' + index).innerHTML += `<div style="color:var(--red);font-size:14px;">回复失败：${e.message}</div>`;
-        }
-    }
-
-    function renderHoldingAIChat(index) {
         const chatDiv = document.getElementById('holdingAIChat_' + index);
-        chatDiv.innerHTML = holdingAIMsgs[index].filter(m => m.role !== 'system').map(m => {
-            const isUser = m.role === 'user';
-            const content = isUser ? escapeHtml(m.content) : renderMarkdown(m.content);
-            return `<div style="margin-bottom:8px;text-align:${isUser ? 'right' : 'left'};">
-                <div style="display:inline-block;max-width:85%;padding:8px 12px;border-radius:10px;font-size:14px;line-height:1.6;white-space:pre-wrap;background:${isUser ? 'var(--accent)' : 'var(--card)'};color:${isUser ? '#fff' : 'var(--text)'};">${content}</div>
-            </div>`;
-        }).join('');
-        chatDiv.scrollTop = chatDiv.scrollHeight;
+
+        if (!apiKey) { chatDiv.innerHTML = '<div style="color:var(--text-secondary);">请先在设置中配置 API Key</div>'; return; }
+
+        chatDiv.innerHTML = '<div style="color:var(--text-secondary);"><span class="spinner"></span> 获取行情并分析中...</div>';
+        const h = holdings[index];
+        const days = h.date ? Math.floor((new Date() - new Date(h.date)) / 86400000) : '未知';
+        let buysInfo = '';
+        if (h.buys && h.buys.length > 1) buysInfo = `，加仓${h.buys.length - 1}次`;
+
+        let priceInfo = '';
+        if (h.code) {
+            const p = await fetchPrice(h.code);
+            if (p) {
+                const pnl = ((p.price - h.price) / h.price * 100).toFixed(2);
+                priceInfo = `\n实时行情：现价${p.price}，今日涨跌${p.changePct}%，持仓浮盈${pnl}%`;
+            }
+        }
+
+        try {
+            const resp = await fetch('https://api.deepseek.com/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                body: JSON.stringify({
+                    model: 'deepseek-chat',
+                    messages: [
+                        { role: 'system', content: '你是持仓分析助手。请结合该股票近期消息面（政策、财报、行业动态等）分析持仓状态，给出：1）近期重要消息面；2）买入逻辑是否还成立；3）风险提示；4）建议操作。简洁中文。' },
+                        { role: 'user', content: `分析持仓：${h.name}，均价${h.price}，${h.qty}股，${fmtStop(h.stop)}，${fmtTarget(h.target)}，已持有${days}天${buysInfo}，买入理由：${h.reason}${priceInfo}` }
+                    ],
+                    temperature: 0.7, max_tokens: 500
+                })
+            });
+            const data = await resp.json();
+            chatDiv.innerHTML = renderMarkdown(data.choices[0].message.content);
+        } catch (e) {
+            chatDiv.innerHTML = `<div style="color:var(--red);">分析失败：${e.message}</div>`;
+        }
     }
 
     function showAddHolding() {
-        document.getElementById('addHoldingModal').classList.add('show');
+        openModal('addHoldingModal');
     }
 
     document.getElementById('addHoldingCancel').addEventListener('click', () => {
-        document.getElementById('addHoldingModal').classList.remove('show');
+        closeModal('addHoldingModal');
     });
 
     document.getElementById('addHoldingSave').addEventListener('click', () => {
@@ -1459,7 +1622,7 @@ ${reviewsInfo}
             document.getElementById(id).value = '';
         });
 
-        document.getElementById('addHoldingModal').classList.remove('show');
+        closeModal('addHoldingModal');
         renderHoldings();
     });
 
@@ -1545,12 +1708,8 @@ ${reviewsInfo}
                         <button class="navbar-btn" onclick="editReview(${realIdx})" style="font-size:13px;">修改</button>
                         <button class="navbar-btn" onclick="deleteReview(${realIdx})" style="font-size:13px;color:var(--red);">删除</button>
                     </div>
-                    <div id="reviewAI_${realIdx}" style="display:none;margin-top:10px;padding:12px;background:var(--bg);border-radius:8px;">
-                        <div id="reviewAIChat_${realIdx}" style="max-height:300px;overflow-y:auto;font-size:14px;line-height:1.6;"></div>
-                        <div style="display:flex;gap:8px;margin-top:10px;">
-                            <input type="text" class="form-input" id="reviewAIInput_${realIdx}" placeholder="继续追问..." style="flex:1;margin:0;font-size:14px;" onkeydown="if(event.key==='Enter')sendReviewAI(${realIdx})" />
-                            <button class="btn btn-primary" onclick="sendReviewAI(${realIdx})" style="white-space:nowrap;font-size:13px;padding:6px 12px;">发送</button>
-                        </div>
+                    <div id="reviewAI_${realIdx}" style="display:none;margin-top:10px;padding:12px;background:var(--bg);border-radius:10px;">
+                        <div id="reviewAIChat_${realIdx}" style="font-size:14px;line-height:1.7;"></div>
                     </div>
                 </div>
             `;
@@ -1560,88 +1719,37 @@ ${reviewsInfo}
         content.innerHTML = html;
     }
 
-    // ====== 复盘 AI 分析（每条记录独立对话，展开/收纳） ======
-    const reviewAIMsgs = DB.get('reviewAIMsgs', {});
-
+    // ====== 复盘 AI 分析（每次展开重新分析最新数据） ======
     async function toggleReviewAI(index) {
         const div = document.getElementById('reviewAI_' + index);
-        if (div.style.display !== 'none') {
-            div.style.display = 'none';
-            return;
-        }
+        if (div.style.display !== 'none') { div.style.display = 'none'; return; }
         div.style.display = 'block';
-
-        if (reviewAIMsgs[index]) {
-            renderReviewAIChat(index);
-            return;
-        }
-
-        if (!apiKey) {
-            document.getElementById('reviewAIChat_' + index).innerHTML = '<div style="color:var(--text-secondary);">请先设置 API Key</div>';
-            return;
-        }
-
-        const r = reviews[index];
-        const tradeInfo = `股票:${r.name}, 买入价:${r.buyPrice}, 卖出价:${r.sellPrice}, 收益率:${r.rate}%, 持有:${r.buyDate}~${r.sellDate}, 买入理由:${r.reason}, 卖出理由:${r.sellReason || '未填写'}`;
-
-        reviewAIMsgs[index] = [
-            { role: 'system', content: '你是交易复盘教练。针对这笔交易做复盘分析，用户可能会追问或说出自己的想法，请给出有价值的回应。简洁中文回答。' },
-            { role: 'user', content: `请复盘这笔交易：${tradeInfo}` }
-        ];
-        renderReviewAIChat(index);
-
-        try {
-            const resp = await fetch('https://api.deepseek.com/chat/completions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-                body: JSON.stringify({ model: 'deepseek-chat', messages: reviewAIMsgs[index], temperature: 0.7, max_tokens: 400 })
-            });
-            const data = await resp.json();
-            const reply = data.choices[0].message.content;
-            reviewAIMsgs[index].push({ role: 'assistant', content: reply });
-            DB.set('reviewAIMsgs', reviewAIMsgs);
-            renderReviewAIChat(index);
-        } catch (e) {
-            document.getElementById('reviewAIChat_' + index).innerHTML += `<div style="color:var(--red);font-size:14px;">分析失败：${e.message}</div>`;
-        }
-    }
-
-    async function sendReviewAI(index) {
-        const input = document.getElementById('reviewAIInput_' + index);
-        const text = input.value.trim();
-        if (!text || !apiKey) return;
-        input.value = '';
-
-        reviewAIMsgs[index].push({ role: 'user', content: text });
-        DB.set('reviewAIMsgs', reviewAIMsgs);
-        renderReviewAIChat(index);
-
-        try {
-            const resp = await fetch('https://api.deepseek.com/chat/completions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-                body: JSON.stringify({ model: 'deepseek-chat', messages: reviewAIMsgs[index], temperature: 0.7, max_tokens: 400 })
-            });
-            const data = await resp.json();
-            const reply = data.choices[0].message.content;
-            reviewAIMsgs[index].push({ role: 'assistant', content: reply });
-            DB.set('reviewAIMsgs', reviewAIMsgs);
-            renderReviewAIChat(index);
-        } catch (e) {
-            document.getElementById('reviewAIChat_' + index).innerHTML += `<div style="color:var(--red);font-size:14px;">回复失败：${e.message}</div>`;
-        }
-    }
-
-    function renderReviewAIChat(index) {
         const chatDiv = document.getElementById('reviewAIChat_' + index);
-        chatDiv.innerHTML = reviewAIMsgs[index].filter(m => m.role !== 'system').map(m => {
-            const isUser = m.role === 'user';
-            const content = isUser ? escapeHtml(m.content) : renderMarkdown(m.content);
-            return `<div style="margin-bottom:8px;text-align:${isUser ? 'right' : 'left'};">
-                <div style="display:inline-block;max-width:85%;padding:8px 12px;border-radius:10px;font-size:14px;line-height:1.6;white-space:pre-wrap;background:${isUser ? 'var(--accent)' : 'var(--card)'};color:${isUser ? '#fff' : 'var(--text)'};">${content}</div>
-            </div>`;
-        }).join('');
-        chatDiv.scrollTop = chatDiv.scrollHeight;
+
+        if (!apiKey) { chatDiv.innerHTML = '<div style="color:var(--text-secondary);">请先设置 API Key</div>'; return; }
+
+        chatDiv.innerHTML = '<div style="color:var(--text-secondary);"><span class="spinner"></span> 获取消息面并分析中...</div>';
+        const r = reviews[index];
+        const tradeInfo = `股票:${r.name}, 买入价:${r.buyPrice}, 卖出价:${r.sellPrice}, 收益率:${r.rate}%, 盈亏:${r.profit}元, 数量:${r.qty}股, 持有:${r.buyDate}~${r.sellDate}, 买入理由:${r.reason}, 卖出理由:${r.sellReason || '未填写'}`;
+
+        try {
+            const resp = await fetch('https://api.deepseek.com/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                body: JSON.stringify({
+                    model: 'deepseek-chat',
+                    messages: [
+                        { role: 'system', content: '你是交易复盘教练。请结合该股票在持有期间的消息面（政策、财报、行业动态等），针对这笔交易做复盘分析，包括：1）持有期间关键消息面回顾；2）操作评价；3）做得好的地方；4）可改进之处；5）下次同类机会建议。简洁中文。' },
+                        { role: 'user', content: tradeInfo }
+                    ],
+                    temperature: 0.7, max_tokens: 500
+                })
+            });
+            const data = await resp.json();
+            chatDiv.innerHTML = renderMarkdown(data.choices[0].message.content);
+        } catch (e) {
+            chatDiv.innerHTML = `<div style="color:var(--red);">分析失败：${e.message}</div>`;
+        }
     }
 
     // 全局AI复盘
@@ -1650,7 +1758,7 @@ ${reviewsInfo}
         if (reviews.length === 0) { alert('暂无复盘数据'); return; }
         const resultDiv = document.getElementById('globalReviewResult');
         resultDiv.style.display = 'block';
-        resultDiv.innerHTML = '<div class="card" style="text-align:center;padding:20px;"><span class="spinner"></span><div style="margin-top:8px;font-size:14px;color:var(--text-secondary);">正在复盘你的交易决策...</div></div>';
+        resultDiv.innerHTML = '<div class="card" style="text-align:center;padding:20px;"><span class="spinner"></span><div style="margin-top:8px;font-size:14px;color:var(--text-secondary);">获取行情 & 全局复盘中...</div></div>';
 
         const totalProfit = reviews.reduce((s, r) => s + r.profit, 0).toFixed(2);
         const winRate = ((reviews.filter(r => r.profit > 0).length / reviews.length) * 100).toFixed(0);
@@ -1660,12 +1768,18 @@ ${reviewsInfo}
 
         let holdingsContext = '';
         if (holdings.length > 0) {
-            holdingsContext = `\n\n当前持仓（${holdings.length}只）：\n` + holdings.map(h => {
+            const holdingDetails = await Promise.all(holdings.map(async h => {
                 const days = h.date ? Math.floor((new Date() - new Date(h.date)) / 86400000) : '未知';
                 let buysInfo = '';
                 if (h.buys && h.buys.length > 1) buysInfo = `，加仓${h.buys.length - 1}次`;
-                return `- ${h.name}：均价${h.price}，${h.qty}股，止损${h.stop}，目标${h.target}，持有${days}天${buysInfo}，理由：${h.reason}`;
-            }).join('\n');
+                let priceInfo = '';
+                if (h.code) {
+                    const p = await fetchPrice(h.code);
+                    if (p) priceInfo = `，现价${p.price}(${p.changePct >= 0 ? '+' : ''}${p.changePct}%)`;
+                }
+                return `- ${h.name}：均价${h.price}，${h.qty}股，${fmtStop(h.stop)}，${fmtTarget(h.target)}，持有${days}天${buysInfo}，理由：${h.reason}${priceInfo}`;
+            }));
+            holdingsContext = `\n\n当前持仓（${holdings.length}只）：\n` + holdingDetails.join('\n');
         }
 
         try {
@@ -1675,16 +1789,43 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是一个交易复盘教练。请根据用户的全部交易记录和当前持仓做全局分析，包括：1）整体表现评价；2）交易习惯总结（持仓周期、止盈止损纪律）；3）当前持仓与过往交易的对比（是否重复犯错）；4）最大的问题和改进建议；5）做得好的地方。简洁中文，分点输出。' },
-                        { role: 'user', content: `我的交易记录（共${reviews.length}笔，胜率${winRate}%，累计盈亏${totalProfit}元）：\n${tradesText}${holdingsContext}` }
+                        { role: 'system', content: '你是一个交易复盘教练。请结合各股票近期消息面（政策、财报、行业动态等），根据用户的全部交易记录和当前持仓做全局分析。\n\n请严格按以下JSON格式输出（不要输出其他内容）：\n{"score":总评分(1-100整数),"level":"评级(S/A/B/C/D)","summary":"一句话总评(20字内)","dimensions":{"discipline":"纪律性评分(1-10)","timing":"择时能力(1-10)","risk":"风控水平(1-10)","mindset":"心态管理(1-10)","learning":"学习进步(1-10)"},"analysis":"详细分析(markdown格式，包含：1)整体表现评价 2)近期消息面对持仓影响 3)交易习惯总结 4)是否重复犯错 5)最大问题和改进建议 6)做得好的地方)"}' },
+                        { role: 'user', content: `今日${new Date().toLocaleDateString('zh-CN')}，我的交易记录（共${reviews.length}笔，胜率${winRate}%，累计盈亏${totalProfit}元）：\n${tradesText}${holdingsContext}` }
                     ],
                     temperature: 0.7,
-                    max_tokens: 800
+                    max_tokens: 1200
                 })
             });
             const data = await resp.json();
-            const reply = data.choices[0].message.content;
-            resultDiv.innerHTML = `<div class="card" style="font-size:14px;line-height:1.7;">${renderMarkdown(reply)}</div>`;
+            const text = data.choices[0].message.content;
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                const result = JSON.parse(jsonMatch[0]);
+                const scoreColor = result.score >= 80 ? 'var(--red)' : result.score >= 60 ? 'var(--orange)' : 'var(--green)';
+                const dims = result.dimensions || {};
+                resultDiv.innerHTML = `<div class="card">
+                    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+                        <div style="text-align:center;">
+                            <div style="font-size:42px;font-weight:800;color:${scoreColor};line-height:1;">${result.score}</div>
+                            <div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">总评分</div>
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-size:16px;font-weight:700;margin-bottom:4px;">评级：${result.level || '-'}</div>
+                            <div style="font-size:14px;color:var(--text-secondary);">${result.summary || ''}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+                        <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:rgba(0,122,255,0.1);color:var(--accent);">纪律 ${dims.discipline || '-'}/10</span>
+                        <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:rgba(255,149,0,0.1);color:var(--orange);">择时 ${dims.timing || '-'}/10</span>
+                        <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:rgba(255,59,48,0.1);color:var(--red);">风控 ${dims.risk || '-'}/10</span>
+                        <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:rgba(52,199,89,0.1);color:var(--green);">心态 ${dims.mindset || '-'}/10</span>
+                        <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:rgba(88,86,214,0.1);color:#5856d6;">学习 ${dims.learning || '-'}/10</span>
+                    </div>
+                    <div style="font-size:14px;line-height:1.7;">${renderMarkdown(result.analysis || '')}</div>
+                </div>`;
+            } else {
+                resultDiv.innerHTML = `<div class="card" style="font-size:14px;line-height:1.7;">${renderMarkdown(text)}</div>`;
+            }
         } catch (e) {
             resultDiv.innerHTML = `<div class="card" style="color:var(--red);font-size:14px;">分析失败：${e.message}</div>`;
         }
@@ -1703,7 +1844,7 @@ ${reviewsInfo}
         document.getElementById('editReviewSellReason').value = r.sellReason || '';
         document.getElementById('editReviewBuyDate').value = r.buyDate || '';
         document.getElementById('editReviewSellDate').value = r.sellDate || '';
-        document.getElementById('editReviewModal').classList.add('show');
+        openModal('editReviewModal');
     }
 
     function saveEditReview() {
@@ -1726,7 +1867,7 @@ ${reviewsInfo}
             sellDate: document.getElementById('editReviewSellDate').value
         };
         DB.set('reviews', reviews);
-        document.getElementById('editReviewModal').classList.remove('show');
+        closeModal('editReviewModal');
         renderReviews();
     }
 
@@ -1735,15 +1876,6 @@ ${reviewsInfo}
         if (!confirm(`删除 ${reviews[index].name} 的复盘记录？`)) return;
         reviews.splice(index, 1);
         DB.set('reviews', reviews);
-        const newMsgs = {};
-        Object.keys(reviewAIMsgs).forEach(k => {
-            const ki = +k;
-            if (ki < index) newMsgs[ki] = reviewAIMsgs[ki];
-            else if (ki > index) newMsgs[ki - 1] = reviewAIMsgs[ki];
-        });
-        Object.keys(reviewAIMsgs).forEach(k => delete reviewAIMsgs[k]);
-        Object.assign(reviewAIMsgs, newMsgs);
-        DB.set('reviewAIMsgs', reviewAIMsgs);
         renderReviews();
     }
 
@@ -1758,11 +1890,11 @@ ${reviewsInfo}
         document.getElementById('reviewSellReason').value = '';
         document.getElementById('reviewBuyDate').value = today;
         document.getElementById('reviewSellDate').value = today;
-        document.getElementById('addReviewModal').classList.add('show');
+        openModal('addReviewModal');
     }
 
     document.getElementById('addReviewCancel').addEventListener('click', () => {
-        document.getElementById('addReviewModal').classList.remove('show');
+        closeModal('addReviewModal');
     });
 
     document.getElementById('addReviewSave').addEventListener('click', () => {
@@ -1785,7 +1917,7 @@ ${reviewsInfo}
 
         reviews.push({ name, buyPrice, sellPrice, qty, profit: +profit, rate: +rate, reason, sellReason, buyDate, sellDate });
         DB.set('reviews', reviews);
-        document.getElementById('addReviewModal').classList.remove('show');
+        closeModal('addReviewModal');
         renderReviews();
     });
 
@@ -1801,11 +1933,11 @@ ${reviewsInfo}
         document.getElementById('sellPrice').value = '';
         document.getElementById('sellDate').value = new Date().toISOString().split('T')[0];
         document.getElementById('sellReason').value = '';
-        document.getElementById('sellHoldingModal').classList.add('show');
+        openModal('sellHoldingModal');
     }
 
     document.getElementById('sellHoldingCancel').addEventListener('click', () => {
-        document.getElementById('sellHoldingModal').classList.remove('show');
+        closeModal('sellHoldingModal');
     });
 
     document.getElementById('sellHoldingSave').addEventListener('click', () => {
@@ -1836,7 +1968,7 @@ ${reviewsInfo}
             holdings[sellingIndex].qty = h.qty - qty;
         }
         DB.set('holdings', holdings);
-        document.getElementById('sellHoldingModal').classList.remove('show');
+        closeModal('sellHoldingModal');
         renderHoldings();
         scoreDecision(reviews.length - 1);
     });
@@ -1854,11 +1986,11 @@ ${reviewsInfo}
         document.getElementById('editTarget').value = h.target;
         document.getElementById('editReason').value = h.reason;
         document.getElementById('editDate').value = h.date || '';
-        document.getElementById('editHoldingModal').classList.add('show');
+        openModal('editHoldingModal');
     }
 
     document.getElementById('editHoldingCancel').addEventListener('click', () => {
-        document.getElementById('editHoldingModal').classList.remove('show');
+        closeModal('editHoldingModal');
     });
 
     document.getElementById('editHoldingSave').addEventListener('click', () => {
@@ -1875,7 +2007,7 @@ ${reviewsInfo}
             date: document.getElementById('editDate').value || holdings[editingIndex].date
         };
         DB.set('holdings', holdings);
-        document.getElementById('editHoldingModal').classList.remove('show');
+        closeModal('editHoldingModal');
         renderHoldings();
     });
 
@@ -1885,15 +2017,6 @@ ${reviewsInfo}
         if (!confirm(`删除 ${h.name}？此操作不会生成复盘记录`)) return;
         holdings.splice(index, 1);
         DB.set('holdings', holdings);
-        const newMsgs = {};
-        Object.keys(holdingAIMsgs).forEach(k => {
-            const ki = +k;
-            if (ki < index) newMsgs[ki] = holdingAIMsgs[ki];
-            else if (ki > index) newMsgs[ki - 1] = holdingAIMsgs[ki];
-        });
-        Object.keys(holdingAIMsgs).forEach(k => delete holdingAIMsgs[k]);
-        Object.assign(holdingAIMsgs, newMsgs);
-        DB.set('holdingAIMsgs', holdingAIMsgs);
         renderHoldings();
     }
 
@@ -1913,6 +2036,14 @@ ${reviewsInfo}
             </div>
             <textarea class="form-input" id="diaryText" rows="3" placeholder="今天做了什么决策？感受如何？">${todayEntry ? escapeHtml(todayEntry.text) : ''}</textarea>
             <button class="btn" style="width:100%;margin-top:12px;font-size:14px;padding:11px 0;border-radius:14px;background:var(--gradient-accent);color:#fff;box-shadow:0 2px 10px rgba(0,122,255,0.2);" onclick="saveDiary()">保存今日日记</button>
+        </div>`;
+
+        html += `<div class="card" style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <span style="font-size:14px;font-weight:600;">📡 市场情绪（AI自动分析）</span>
+                <button class="navbar-btn" onclick="loadMarketSentiment()" style="font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:8px;">刷新</button>
+            </div>
+            <div id="marketSentiment" style="font-size:13px;line-height:1.7;color:var(--text-secondary);">加载中...</div>
         </div>`;
 
         if (diaryEntries.length > 0) {
@@ -1940,7 +2071,7 @@ ${reviewsInfo}
             });
             html += '</div></div>';
 
-            html += `<button class="btn" style="width:100%;margin-bottom:16px;font-size:14px;padding:11px 0;border-radius:14px;background:linear-gradient(135deg,#ff9500,#ff6b00);color:#fff;box-shadow:0 2px 10px rgba(255,149,0,0.2);" onclick="globalDiaryReview()">🤖 AI 情绪分析</button>`;
+            html += `<button class="btn" style="width:100%;margin-bottom:16px;font-size:14px;padding:11px 0;border-radius:14px;background:linear-gradient(135deg,#ff9500,#ff6b00);color:#fff;box-shadow:0 2px 10px rgba(255,149,0,0.2);" onclick="globalDiaryReview()">🤖 情绪对比分析</button>`;
             html += '<div id="diaryReviewResult" style="display:none;margin-bottom:16px;"></div>';
             html += '<div style="font-size:14px;font-weight:600;margin-bottom:12px;">历史日记</div>';
             html += '<div class="card">';
@@ -1963,6 +2094,68 @@ ${reviewsInfo}
         }
 
         content.innerHTML = html;
+        loadMarketSentiment();
+    }
+
+    async function loadMarketSentiment() {
+        const container = document.getElementById('marketSentiment');
+        if (!container) return;
+        if (!apiKey) { container.innerHTML = '请先设置 API Key'; return; }
+
+        container.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px;vertical-align:middle;"></span> 分析市场情绪中...';
+
+        const stockNames = holdings.map(h => h.name).filter(Boolean);
+        const holdingsContext = stockNames.length > 0 ? `\n用户持仓股票：${stockNames.join('、')}` : '';
+
+        try {
+            const resp = await fetch('https://api.deepseek.com/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                body: JSON.stringify({
+                    model: 'deepseek-chat',
+                    messages: [
+                        { role: 'system', content: '你是市场情绪分析师。请结合今日A股/港股/美股的消息面，分析当前市场整体情绪。输出JSON格式（不要其他文字）：{"overall":"整体情绪(极度恐惧/恐惧/偏空/中性/偏多/乐观/极度贪婪)","score":情绪分数(0-100,0极度恐惧,100极度贪婪),"market_summary":"今日大盘表现概况(30字内)","key_events":[{"event":"重大事件标题","impact":"对市场影响(20字内)","sentiment":"positive/negative/neutral"}],"holding_sentiment":"针对用户持仓相关板块的情绪判断(如有持仓)(50字内)","suggestion":"基于当前市场情绪给投资者的心态建议(30字内)"}' },
+                        { role: 'user', content: `今日${new Date().toLocaleDateString('zh-CN')}，请分析当前市场情绪。${holdingsContext}` }
+                    ],
+                    temperature: 0.5, max_tokens: 800
+                })
+            });
+            const data = await resp.json();
+            const text = data.choices[0].message.content;
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                const s = JSON.parse(jsonMatch[0]);
+                const scoreColor = s.score >= 70 ? 'var(--red)' : s.score >= 40 ? 'var(--orange)' : 'var(--green)';
+                const barColor = s.score >= 70 ? 'linear-gradient(90deg,#ff9500,#ff3b30)' : s.score >= 40 ? 'linear-gradient(90deg,#34c759,#ff9500)' : 'linear-gradient(90deg,#007aff,#34c759)';
+                container.innerHTML = `
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+                        <div style="font-size:28px;font-weight:800;color:${scoreColor};line-height:1;">${s.score}</div>
+                        <div style="flex:1;">
+                            <div style="font-size:14px;font-weight:600;margin-bottom:3px;">${s.overall || '中性'}</div>
+                            <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+                                <div style="height:100%;width:${s.score}%;background:${barColor};border-radius:3px;transition:width 0.5s;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="font-size:13px;color:var(--text);margin-bottom:8px;">${s.market_summary || ''}</div>
+                    ${s.key_events && s.key_events.length > 0 ? `<div style="margin-bottom:8px;">${s.key_events.map(e => {
+                        const c = e.sentiment === 'positive' ? 'var(--red)' : e.sentiment === 'negative' ? 'var(--green)' : 'var(--text-secondary)';
+                        const label = e.sentiment === 'positive' ? '利好' : e.sentiment === 'negative' ? '利空' : '中性';
+                        return `<div style="display:flex;gap:6px;align-items:center;padding:3px 0;font-size:12px;">
+                            <span style="padding:1px 6px;border-radius:4px;background:${e.sentiment === 'positive' ? 'rgba(255,59,48,0.08)' : e.sentiment === 'negative' ? 'rgba(52,199,89,0.08)' : 'rgba(128,128,128,0.08)'};color:${c};font-size:11px;font-weight:600;">${label}</span>
+                            <span style="color:var(--text);">${e.event}</span>
+                            <span style="color:var(--text-secondary);font-size:11px;margin-left:auto;white-space:nowrap;">${e.impact || ''}</span>
+                        </div>`;
+                    }).join('')}</div>` : ''}
+                    ${s.holding_sentiment ? `<div style="padding:8px 10px;background:rgba(0,122,255,0.06);border-radius:8px;font-size:12px;color:var(--accent);margin-bottom:6px;">💼 持仓相关：${s.holding_sentiment}</div>` : ''}
+                    ${s.suggestion ? `<div style="font-size:12px;color:var(--text-secondary);font-style:italic;">💡 ${s.suggestion}</div>` : ''}
+                `;
+            } else {
+                container.innerHTML = `<div style="font-size:13px;line-height:1.7;">${renderMarkdown(text)}</div>`;
+            }
+        } catch(e) {
+            container.innerHTML = `<span style="color:var(--red);">分析失败：${e.message}</span>`;
+        }
     }
 
     let selectedMoodIdx = null;
@@ -1980,14 +2173,18 @@ ${reviewsInfo}
         if (diaryEntries.length === 0) { alert('暂无日记数据'); return; }
         const resultDiv = document.getElementById('diaryReviewResult');
         resultDiv.style.display = 'block';
-        resultDiv.innerHTML = '<div class="card" style="text-align:center;padding:20px;"><span class="spinner"></span><div style="margin-top:8px;font-size:14px;color:var(--text-secondary);">正在分析你的情绪与决策关联...</div></div>';
+        resultDiv.innerHTML = '<div class="card" style="text-align:center;padding:20px;"><span class="spinner"></span><div style="margin-top:8px;font-size:14px;color:var(--text-secondary);">对比个人情绪与市场情绪中...</div></div>';
 
         const diaryText = diaryEntries.slice(-30).map(d =>
-            `${d.date} | 情绪:${MOODS[d.mood] || '未知'} | ${d.text}`
+            `${d.date} | 我的情绪:${MOODS[d.mood] || '未知'} | ${d.text}`
         ).join('\n');
 
         const reviewContext = reviews.length > 0
-            ? `\n\n交易记录参考（共${reviews.length}笔，胜率${((reviews.filter(r => r.profit > 0).length / reviews.length) * 100).toFixed(0)}%）：\n` + reviews.slice(-10).map(r => `${r.sellDate} ${r.name} ${r.rate >= 0 ? '+' : ''}${r.rate}%`).join('\n')
+            ? `\n\n交易记录（共${reviews.length}笔，胜率${((reviews.filter(r => r.profit > 0).length / reviews.length) * 100).toFixed(0)}%）：\n` + reviews.slice(-10).map(r => `${r.sellDate} ${r.name} ${r.rate >= 0 ? '+' : ''}${r.rate}%`).join('\n')
+            : '';
+
+        const holdingsContext = holdings.length > 0
+            ? `\n\n当前持仓：${holdings.map(h => h.name).join('、')}`
             : '';
 
         try {
@@ -1997,16 +2194,51 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是一个交易心理分析师。请根据用户的交易日记（含情绪标记）分析：1）情绪变化趋势；2）情绪与操作/收益的关联（比如恐惧时卖出是否正确、贪婪时买入是否亏损）；3）情绪管理建议。简洁中文，分点输出。' },
-                        { role: 'user', content: `我的交易日记（近30条）：\n${diaryText}${reviewContext}` }
+                        { role: 'system', content: '你是交易心理分析师。请同时分析用户个人情绪和当前市场情绪，做出对比分析。输出JSON格式（不要其他文字）：\n{"my_trend":"用户近期情绪趋势(20字内)","market_trend":"当前市场整体情绪趋势(20字内)","alignment":"同步/背离/适度背离","alignment_analysis":"个人情绪vs市场情绪的对比分析(判断用户是跟风还是逆向,是否理性)(80字内)","danger_signals":["危险信号列表,比如贪婪时市场已过热/恐惧时其实是机会等"],"correlation":"情绪与盈亏的关联发现(40字内)","advice":"基于对比给出的心态管理建议(50字内)","score":情绪管理评分(1-100)}' },
+                        { role: 'user', content: `今日${new Date().toLocaleDateString('zh-CN')}。\n\n我的情绪日记（近30天）：\n${diaryText}${reviewContext}${holdingsContext}\n\n请对比分析我的情绪与市场情绪的关系。` }
                     ],
                     temperature: 0.7,
-                    max_tokens: 600
+                    max_tokens: 800
                 })
             });
             const data = await resp.json();
-            const reply = data.choices[0].message.content;
-            resultDiv.innerHTML = `<div class="card" style="font-size:14px;line-height:1.7;">${renderMarkdown(reply)}</div>`;
+            const text = data.choices[0].message.content;
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                const r = JSON.parse(jsonMatch[0]);
+                const alignColor = r.alignment === '同步' ? 'var(--orange)' : r.alignment === '背离' ? 'var(--red)' : 'var(--green)';
+                const scoreColor = r.score >= 70 ? 'var(--green)' : r.score >= 40 ? 'var(--orange)' : 'var(--red)';
+                resultDiv.innerHTML = `<div class="card">
+                    <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+                        <div style="text-align:center;">
+                            <div style="font-size:32px;font-weight:800;color:${scoreColor};line-height:1;">${r.score || '-'}</div>
+                            <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">情绪管理分</div>
+                        </div>
+                        <div style="flex:1;">
+                            <div style="display:inline-block;padding:3px 10px;border-radius:8px;background:${alignColor};color:#fff;font-size:12px;font-weight:600;margin-bottom:6px;">${r.alignment || '未知'}</div>
+                            <div style="font-size:13px;color:var(--text);">${r.alignment_analysis || ''}</div>
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+                        <div style="padding:10px;background:rgba(0,122,255,0.06);border-radius:10px;">
+                            <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">🧠 我的情绪</div>
+                            <div style="font-size:13px;font-weight:600;color:var(--text);">${r.my_trend || '-'}</div>
+                        </div>
+                        <div style="padding:10px;background:rgba(255,149,0,0.06);border-radius:10px;">
+                            <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">📈 市场情绪</div>
+                            <div style="font-size:13px;font-weight:600;color:var(--text);">${r.market_trend || '-'}</div>
+                        </div>
+                    </div>
+                    ${r.danger_signals && r.danger_signals.length > 0 ? `<div style="margin-bottom:12px;padding:10px;background:rgba(255,59,48,0.06);border-radius:10px;border:1px solid rgba(255,59,48,0.12);">
+                        <div style="font-size:12px;font-weight:600;color:var(--red);margin-bottom:6px;">⚠️ 危险信号</div>
+                        ${r.danger_signals.map(s => `<div style="font-size:12px;color:var(--text);padding:2px 0;">• ${s}</div>`).join('')}
+                    </div>` : ''}
+                    ${r.correlation ? `<div style="font-size:13px;color:var(--text);margin-bottom:8px;">📊 <strong>关联发现：</strong>${r.correlation}</div>` : ''}
+                    ${r.advice ? `<div style="font-size:13px;color:var(--accent);font-style:italic;">💡 ${r.advice}</div>` : ''}
+                </div>`;
+            } else {
+                resultDiv.innerHTML = `<div class="card" style="font-size:14px;line-height:1.7;">${renderMarkdown(text)}</div>`;
+            }
         } catch (e) {
             resultDiv.innerHTML = `<div class="card" style="color:var(--red);font-size:14px;">分析失败：${e.message}</div>`;
         }
@@ -2029,7 +2261,7 @@ ${reviewsInfo}
         document.getElementById('editDiaryText').value = d.text;
         const moodsDiv = document.getElementById('editDiaryMoods');
         moodsDiv.innerHTML = MOODS.map((m, i) => `<button type="button" class="navbar-btn" onclick="selectEditDiaryMood(${i})" style="font-size:13px;padding:6px 10px;border-radius:16px;border:1px solid ${i === editDiaryMoodIdx ? 'var(--accent)' : 'var(--border)'};background:${i === editDiaryMoodIdx ? 'var(--accent)' : 'transparent'};color:${i === editDiaryMoodIdx ? '#fff' : 'var(--text)'};">${m}</button>`).join('');
-        document.getElementById('editDiaryModal').classList.add('show');
+        openModal('editDiaryModal');
     }
 
     function selectEditDiaryMood(idx) {
@@ -2050,7 +2282,7 @@ ${reviewsInfo}
             text: document.getElementById('editDiaryText').value.trim()
         };
         DB.set('diary', diaryEntries);
-        document.getElementById('editDiaryModal').classList.remove('show');
+        closeModal('editDiaryModal');
         renderDiary();
     }
 
@@ -2076,16 +2308,21 @@ ${reviewsInfo}
         if (!apiKey) { alert('请先在设置中配置 API Key'); return; }
         const resultDiv = document.getElementById('reviewAllResult');
         resultDiv.style.display = 'block';
-        resultDiv.innerHTML = '<div class="card" style="text-align:center;padding:20px;"><span class="spinner"></span><div style="margin-top:8px;font-size:14px;color:var(--text-secondary);">正在检查你的持仓健康度...</div></div>';
+        resultDiv.innerHTML = '<div class="card" style="text-align:center;padding:20px;"><span class="spinner"></span><div style="margin-top:8px;font-size:14px;color:var(--text-secondary);">获取行情 & 消息面分析中...</div></div>';
 
-        const holdingsText = holdings.map((h, i) => {
+        const holdingsTexts = await Promise.all(holdings.map(async (h, i) => {
             const days = h.date ? Math.floor((new Date() - new Date(h.date)) / 86400000) : '未知';
             let buysInfo = '';
             if (h.buys && h.buys.length > 1) {
                 buysInfo = `，加仓记录：${h.buys.map(b => `${b.date || ''}以${b.price}买入${b.qty}股${b.reason ? '(' + b.reason + ')' : ''}`).join('；')}`;
             }
-            return `${i + 1}. ${h.name}：均价${h.price}，${h.qty}股，止损${h.stop}，目标${h.target}，已持有${days}天，买入理由：${h.reason}${buysInfo}`;
-        }).join('\n');
+            let priceInfo = '';
+            if (h.code) {
+                const p = await fetchPrice(h.code);
+                if (p) priceInfo = `，现价${p.price}(${p.changePct >= 0 ? '+' : ''}${p.changePct}%)，浮盈${((p.price - h.price) / h.price * 100).toFixed(2)}%`;
+            }
+            return `${i + 1}. ${h.name}：均价${h.price}，${h.qty}股，${fmtStop(h.stop)}，${fmtTarget(h.target)}，已持有${days}天，买入理由：${h.reason}${buysInfo}${priceInfo}`;
+        }));
 
         try {
             const resp = await fetch('https://api.deepseek.com/chat/completions', {
@@ -2094,16 +2331,15 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是一个持仓回顾助手。用户每天需要回顾持仓的买入理由是否还成立。请逐只分析，对每只股票给出：1）买入理由现在是否还成立；2）如果有加仓记录，分析加仓决策是否合理（是否摊薄了不该摊薄的成本）；3）建议操作方向（继续持有/加仓/减仓/止盈/止损）。简洁中文，每只股票3-4句话。' },
-                        { role: 'user', content: `请帮我回顾以下持仓：\n${holdingsText}` }
+                        { role: 'system', content: '你是一个持仓回顾助手。请结合每只股票的近期消息面（政策、财报、行业动态、市场情绪等）逐只分析，对每只股票给出：1）近期关键消息面；2）买入理由现在是否还成立；3）如果有加仓记录，分析加仓决策是否合理；4）建议操作方向（继续持有/加仓/减仓/止盈/止损）。简洁中文，每只股票4-5句话。' },
+                        { role: 'user', content: `请帮我回顾以下持仓（今日${new Date().toLocaleDateString('zh-CN')}）：\n${holdingsTexts.join('\n')}` }
                     ],
                     temperature: 0.7,
-                    max_tokens: 600
+                    max_tokens: 800
                 })
             });
             const data = await resp.json();
-            const reply = data.choices[0].message.content;
-            resultDiv.innerHTML = `<div class="card" style="font-size:14px;line-height:1.7;">${renderMarkdown(reply)}</div>`;
+            resultDiv.innerHTML = `<div class="card" style="font-size:14px;line-height:1.7;">${renderMarkdown(data.choices[0].message.content)}</div>`;
         } catch (e) {
             resultDiv.innerHTML = `<div class="card" style="color:var(--red);font-size:14px;">分析失败：${e.message}</div>`;
         }
@@ -2293,7 +2529,7 @@ ${reviewsInfo}
         if (!apiKey) { alert('请先在设置中配置 API Key'); return; }
         const container = document.getElementById('globalReviewResult');
         container.style.display = 'block';
-        container.innerHTML = '<div class="card" style="text-align:center;font-size:14px;color:var(--text-secondary);padding:20px;">📊 正在生成周报...</div>';
+        container.innerHTML = '<div class="card" style="text-align:center;font-size:14px;color:var(--text-secondary);padding:20px;"><span class="spinner"></span><div style="margin-top:8px;">📊 获取行情 & 生成周报中...</div></div>';
 
         const now = new Date();
         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -2314,7 +2550,18 @@ ${reviewsInfo}
             ? weekReviews.map(r => `${r.name}(${r.rate >= 0 ? '+' : ''}${r.rate}%)`).join('、')
             : '本周无交易';
 
-        const holdingsSummary = holdings.map(h => h.name).join('、') || '无持仓';
+        let holdingsSummary = '无持仓';
+        if (holdings.length > 0) {
+            const details = await Promise.all(holdings.map(async h => {
+                let priceInfo = '';
+                if (h.code) {
+                    const p = await fetchPrice(h.code);
+                    if (p) priceInfo = `(现价${p.price},${p.changePct >= 0 ? '+' : ''}${p.changePct}%)`;
+                }
+                return `${h.name}${priceInfo}`;
+            }));
+            holdingsSummary = details.join('、');
+        }
 
         try {
             const resp = await fetch('https://api.deepseek.com/chat/completions', {
@@ -2323,10 +2570,10 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是投资周报撰写助手。根据用户本周交易数据、情绪记录、持仓情况，生成一份简洁的周报。包括：本周概况、做得好的地方、需要改进的地方、下周建议。用markdown格式，简洁有力，不超过300字。' },
-                        { role: 'user', content: `本周数据（${weekStr} ~ ${now.toISOString().split('T')[0]}）：\n交易${weekTrades}笔，盈亏${weekProfit}元，胜率${weekTrades > 0 ? ((weekWins/weekTrades)*100).toFixed(0) : 0}%\n交易明细：${tradesSummary}\n平均决策得分：${avgScore.toFixed(1)}/10\n情绪记录：${moodSummary}\n当前持仓：${holdingsSummary}` }
+                        { role: 'system', content: '你是投资周报撰写助手。请结合各持仓股票近期消息面（政策、财报、行业动态等），根据用户本周交易数据、情绪记录、持仓情况，生成一份周报。包括：本周概况、相关消息面汇总、做得好的地方、需要改进的地方、下周操作建议。用markdown格式，简洁有力。' },
+                        { role: 'user', content: `今日${now.toLocaleDateString('zh-CN')}，本周数据（${weekStr} ~ ${now.toISOString().split('T')[0]}）：\n交易${weekTrades}笔，盈亏${weekProfit}元，胜率${weekTrades > 0 ? ((weekWins/weekTrades)*100).toFixed(0) : 0}%\n交易明细：${tradesSummary}\n平均决策得分：${avgScore.toFixed(1)}/10\n情绪记录：${moodSummary}\n当前持仓：${holdingsSummary}` }
                     ],
-                    temperature: 0.7, max_tokens: 500
+                    temperature: 0.7, max_tokens: 700
                 })
             });
             const data = await resp.json();
@@ -2355,18 +2602,22 @@ ${reviewsInfo}
         if (holdings.length === 0) { container.style.display = 'none'; return; }
         if (!apiKey) { container.innerHTML = '<div style="font-size:13px;color:var(--text-secondary);">设置 API Key 后可获取每日建议</div>'; return; }
 
-        const cacheKey = 'dailySuggestion_' + new Date().toISOString().split('T')[0];
-        const cached = DB.get(cacheKey, null);
-        if (cached) {
-            container.style.display = 'block';
-            container.innerHTML = `<div style="font-size:13px;line-height:1.7;color:var(--text);">${renderMarkdown(cached)}</div>`;
-            return;
-        }
-
         container.style.display = 'block';
-        container.innerHTML = '<div style="font-size:13px;color:var(--text-secondary);">🤖 正在生成今日建议...</div>';
+        container.innerHTML = '<div style="font-size:13px;color:var(--text-secondary);"><span class="spinner" style="width:16px;height:16px;border-width:2px;vertical-align:middle;"></span> 获取消息面 & 生成操作建议...</div>';
 
-        const holdingsSummary = holdings.map(h => `${h.name}(成本${h.price},${h.qty}股,止损${h.stop},目标${h.target})`).join('；');
+        const holdingsDetails = await Promise.all(holdings.map(async h => {
+            const days = h.date ? Math.floor((new Date() - new Date(h.date)) / 86400000) : '未知';
+            let priceInfo = '';
+            if (h.code) {
+                const p = await fetchPrice(h.code);
+                if (p) {
+                    const pnl = ((p.price - h.price) / h.price * 100).toFixed(2);
+                    priceInfo = `，现价${p.price}(浮盈${pnl}%)`;
+                }
+            }
+            return `${h.name}(成本${h.price},${h.qty}股,${fmtStop(h.stop)},${fmtTarget(h.target)},持有${days}天,理由:${h.reason}${priceInfo})`;
+        }));
+
         try {
             const resp = await fetch('https://api.deepseek.com/chat/completions', {
                 method: 'POST',
@@ -2374,16 +2625,14 @@ ${reviewsInfo}
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        { role: 'system', content: '你是一个股票投资教练。根据用户持仓给出简短的每日操作建议（3-5条要点），包括：是否需要止盈/止损、今日关注点、心态提醒。不超过150字。' },
-                        { role: 'user', content: `今天是${new Date().toLocaleDateString('zh-CN')}，我的持仓：${holdingsSummary}。请给我今日操作建议。` }
+                        { role: 'system', content: '你是股票投资教练。请结合每只股票近期消息面（政策、财报、行业动态等），逐只给出今日推荐操作。格式要求：用markdown，每只股票用"### 股票名"作为标题单独一段，内容包含推荐操作（**持有/加仓/减仓/止盈/止损**加粗标注）、消息面依据、买入逻辑是否成立。最后用"### 整体提醒"给1-2句心态提醒。' },
+                        { role: 'user', content: `今天${new Date().toLocaleDateString('zh-CN')}，我的持仓：\n${holdingsDetails.join('\n')}\n\n请结合消息面给出每只股票的推荐操作。` }
                     ],
-                    temperature: 0.7, max_tokens: 300
+                    temperature: 0.7, max_tokens: 600
                 })
             });
             const data = await resp.json();
-            const suggestion = data.choices[0].message.content;
-            DB.set(cacheKey, suggestion);
-            container.innerHTML = `<div style="font-size:13px;line-height:1.7;color:var(--text);">${renderMarkdown(suggestion)}</div>`;
+            container.innerHTML = `<div style="font-size:13px;line-height:1.8;color:var(--text);">${renderMarkdown(data.choices[0].message.content)}</div>`;
         } catch(e) {
             container.innerHTML = '<div style="font-size:13px;color:var(--red);">建议生成失败，请稍后重试</div>';
         }
@@ -2402,9 +2651,7 @@ ${reviewsInfo}
     // ====== 初始化 ======
     renderChatList();
     if (!apiKey) {
-        setTimeout(() => {
-            settingsModal.classList.add('show');
-        }, 500);
+        setTimeout(() => openModal('settingsModal'), 500);
     }
     </script>
 </body>
